@@ -2055,8 +2055,11 @@ function setupRoomListeners(code) {
                 if (qs.exists()) gameState.quizData = qs.val();
                 roomRef.child('timerPerImage').once('value', ts => {
                     if (ts.exists()) gameState.timerPerImage = ts.val();
+                    gameState.room.started = true;
                     showScreen('game-screen');
                     requestWakeLock();
+                    // Load current question now that data is ready
+                    loadQuestion(gameState.currentQ);
                 });
             });
         }
@@ -2068,7 +2071,7 @@ function setupRoomListeners(code) {
         const q = snap.val();
         if (q !== null && q !== undefined) {
             gameState.currentQ = q;
-            if (gameState.room.started) {
+            if (gameState.room.started && gameState.quizData.length > 0) {
                 loadQuestion(q);
             }
         }
@@ -2079,8 +2082,9 @@ function setupRoomListeners(code) {
     currentImageRef.on('value', snap => {
         const img = snap.val();
         if (img !== null && img !== undefined) {
+            const changed = gameState.currentImage !== img;
             gameState.currentImage = img;
-            if (gameState.room.started) {
+            if (gameState.room.started && changed && gameState.quizData.length > 0) {
                 updateImageDisplay();
             }
         }
