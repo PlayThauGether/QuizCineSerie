@@ -582,6 +582,94 @@
             display: none;
         }
 
+        /* Rules Intro Overlay */
+        .rules-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10, 14, 39, 0.97);
+            z-index: 9500;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .rules-overlay.show { display: flex; }
+        .rules-content {
+            text-align: center;
+            max-width: 600px;
+            animation: revealFadeIn 0.5s ease;
+        }
+        .rules-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 4rem;
+            font-weight: 800;
+            color: #00f5ff;
+            text-shadow: 0 0 40px rgba(0, 245, 255, 0.5);
+            letter-spacing: 0.1em;
+        }
+        .rules-title-sub {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #ffbe0b;
+            text-shadow: 0 0 40px rgba(255, 190, 11, 0.5);
+            letter-spacing: 0.1em;
+            margin-top: -0.5rem;
+        }
+        .rules-divider {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #ff006e, #8338ec, #00f5ff);
+            border-radius: 4px;
+            margin: 1.5rem auto;
+        }
+        .rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #eee;
+        }
+        .rule-badge {
+            font-size: 1.5rem;
+        }
+        .rules-info {
+            color: #aaa;
+            font-size: 1rem;
+            margin-top: 1.5rem;
+            padding: 0.8rem 1.5rem;
+            background: rgba(131, 56, 236, 0.15);
+            border: 2px solid #8338ec;
+            border-radius: 50px;
+            display: inline-block;
+        }
+        .rules-countdown {
+            color: #aaa;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-top: 2rem;
+        }
+        .rules-countdown span {
+            color: #ff006e;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        @media (max-width: 480px) {
+            .rules-title { font-size: 2.8rem; }
+            .rules-title-sub { font-size: 2.5rem; }
+            .rule-item { font-size: 1rem; }
+        }
+
         /* Cinematic Reveal Overlay */
         .reveal-overlay {
             display: none;
@@ -1208,6 +1296,35 @@
         </div>
     </div>
 
+    <!-- ============ RULES INTRO OVERLAY ============ -->
+    <div class="rules-overlay" id="rules-overlay">
+        <div class="rules-content">
+            <div class="rules-title">3 IMAGES</div>
+            <div class="rules-title-sub">1 FILM</div>
+            <div class="rules-divider"></div>
+            <div class="rules-list">
+                <div class="rule-item">
+                    <span class="rule-badge hard">🔴</span>
+                    <span>Image <strong>difficile</strong> → <strong>3 points</strong></span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-badge medium">🟡</span>
+                    <span>Image <strong>moyenne</strong> → <strong>2 points</strong></span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-badge easy">🟢</span>
+                    <span>Image <strong>facile</strong> → <strong>1 point</strong></span>
+                </div>
+            </div>
+            <div class="rules-info">
+                🎯 Tu peux réessayer autant que tu veux tant que le timer tourne !
+            </div>
+            <div class="rules-countdown">
+                La partie commence dans <span id="rules-timer">15</span>s
+            </div>
+        </div>
+    </div>
+
     <!-- ============ REVEAL OVERLAY ============ -->
     <div class="reveal-overlay" id="reveal-overlay">
         <div class="reveal-movie-name" id="reveal-movie-name"></div>
@@ -1318,6 +1435,7 @@ const gameState = {
     lastCorrectPlayers: [],
     wrongFeedbackTimeout: null,
     revealInterval: null,
+    introInterval: null,
     listeners: []
 };
 
@@ -1519,8 +1637,18 @@ async function tryReconnect() {
         if (room.started) {
             gameState.currentQ = room.currentQ || 0;
             gameState.currentImage = room.currentImage || 1;
+            gameState.room.started = true;
             showScreen('game-screen');
-            loadQuestion(gameState.currentQ);
+            requestWakeLock();
+
+            const phase = room.gamePhase || 'playing';
+            if (phase === 'intro') {
+                showRulesIntro(session.code);
+            } else {
+                // Game in progress — load with anti-cheat
+                // revealRef listener will handle showing reveal if needed
+                loadQuestionWithCheck(gameState.currentQ);
+            }
         } else {
             showScreen('lobby-screen');
             updateLobby();
@@ -2055,21 +2183,41 @@ function setupRoomListeners(code) {
                     gameState.room.started = true;
                     showScreen('game-screen');
                     requestWakeLock();
-                    // Load current question now that data is ready
-                    loadQuestion(gameState.currentQ);
+                    // Show intro for non-host too
+                    showRulesIntro(gameState.room.code);
                 });
             });
         }
     });
     gameState.listeners.push(startedRef);
 
+    // Game phase listener — triggers actual gameplay after intro
+    const phaseRef = roomRef.child('gamePhase');
+    phaseRef.on('value', snap => {
+        const phase = snap.val();
+        if (phase === 'playing' && gameState.room.started && gameState.quizData.length > 0) {
+            // Close intro if still showing
+            clearInterval(gameState.introInterval);
+            document.getElementById('rules-overlay').classList.remove('show');
+            // Load question with anti-cheat check
+            loadQuestionWithCheck(gameState.currentQ);
+        }
+    });
+    gameState.listeners.push(phaseRef);
+
     const currentQRef = roomRef.child('currentQ');
     currentQRef.on('value', snap => {
         const q = snap.val();
         if (q !== null && q !== undefined) {
+            const changed = gameState.currentQ !== q;
             gameState.currentQ = q;
-            if (gameState.room.started && gameState.quizData.length > 0) {
-                loadQuestion(q);
+            if (gameState.room.started && changed && gameState.quizData.length > 0) {
+                // Check phase before loading
+                roomRef.child('gamePhase').once('value', ps => {
+                    if (ps.val() === 'playing') {
+                        loadQuestionWithCheck(q);
+                    }
+                });
             }
         }
     });
@@ -2205,6 +2353,7 @@ async function startGame() {
     try {
         await db.ref('filmQuizRooms/' + code).update({
             started: true,
+            gamePhase: 'intro',
             currentQ: 0,
             currentImage: 1,
             revealAnswer: false,
@@ -2217,32 +2366,104 @@ async function startGame() {
 
         showScreen('game-screen');
         requestWakeLock();
-        
-        // Preload first question images before loading
-        if (shuffledQuiz[0]) {
-            shuffledQuiz[0].images.forEach(url => {
-                if (url) { const img = new Image(); img.src = url; }
-            });
-        }
-        
-        loadQuestion(0);
+        showRulesIntro(code);
     } catch (e) {
         showToast('❌ Erreur: ' + e.message);
     }
     hideLoading();
 }
 
+function showRulesIntro(code) {
+    const overlay = document.getElementById('rules-overlay');
+    overlay.classList.add('show');
+
+    // Preload ALL images of the first 2 questions during intro
+    for (let i = 0; i < Math.min(2, gameState.quizData.length); i++) {
+        const q = gameState.quizData[i];
+        if (q && q.images) {
+            q.images.forEach(url => {
+                if (url) { const img = new Image(); img.src = url; }
+            });
+        }
+    }
+
+    let countdown = 15;
+    document.getElementById('rules-timer').textContent = countdown;
+
+    clearInterval(gameState.introInterval);
+    gameState.introInterval = setInterval(async () => {
+        countdown--;
+        document.getElementById('rules-timer').textContent = Math.max(0, countdown);
+
+        if (countdown <= 0) {
+            clearInterval(gameState.introInterval);
+            overlay.classList.remove('show');
+
+            // Host triggers the actual game start
+            if (gameState.isHost) {
+                try {
+                    await db.ref('filmQuizRooms/' + code).update({
+                        gamePhase: 'playing',
+                        currentQ: 0,
+                        currentImage: 1,
+                        revealAnswer: false,
+                        answers: {}
+                    });
+                } catch (e) {}
+            }
+        }
+    }, 1000);
+}
+
 // ============================================================
 //  GAME LOGIC
 // ============================================================
-function loadQuestion(qIndex) {
+
+// Anti-cheat: Check if player already answered this question before loading
+async function loadQuestionWithCheck(qIndex) {
+    if (gameState.isHost && gameState.hostMode) {
+        loadQuestion(qIndex, false);
+        return;
+    }
+
+    const code = gameState.room.code;
+    const player = gameState.room.players[gameState.playerIndex];
+    if (!player) { loadQuestion(qIndex, false); return; }
+    const myName = safeName(player.name);
+
+    try {
+        const ansSnap = await db.ref('filmQuizRooms/' + code + '/answers/' + myName).once('value');
+        if (ansSnap.exists()) {
+            const ans = ansSnap.val();
+            if (ans.questionIndex === qIndex && ans.correct) {
+                // Already answered correctly — load locked
+                loadQuestion(qIndex, true);
+
+                const fb = document.getElementById('answer-feedback');
+                fb.className = 'answer-feedback correct';
+                fb.textContent = `✅ Déjà répondu ! +${ans.points} point${ans.points > 1 ? 's' : ''}`;
+                fb.style.display = 'block';
+                document.getElementById('answer-input').value = ans.answer || '';
+                document.getElementById('answer-input').disabled = true;
+                document.getElementById('submit-answer-btn').disabled = true;
+                return;
+            }
+        }
+    } catch (e) {
+        console.log('Answer check error:', e);
+    }
+
+    loadQuestion(qIndex, false);
+}
+
+function loadQuestion(qIndex, alreadyAnswered) {
     if (!gameState.quizData || qIndex >= gameState.quizData.length) {
         showLeaderboard();
         return;
     }
 
     const q = gameState.quizData[qIndex];
-    gameState.answered = false;
+    gameState.answered = alreadyAnswered || false;
     gameState.answeredAtImage = 0;
     gameState.lastCorrectPlayers = [];
     gameState.currentImage = 1; // Force reset to image 1
@@ -2713,7 +2934,9 @@ function updateCorrectAnswersSide(answers) {
 function showLeaderboard() {
     clearInterval(gameState.timerInterval);
     clearInterval(gameState.revealInterval);
+    clearInterval(gameState.introInterval);
     document.getElementById('reveal-overlay').classList.remove('show');
+    document.getElementById('rules-overlay').classList.remove('show');
     showScreen('leaderboard-screen');
 
     const players = (gameState.room.players || [])
@@ -2902,7 +3125,9 @@ function backToMenu() {
     }
     clearInterval(gameState.timerInterval);
     clearInterval(gameState.revealInterval);
+    clearInterval(gameState.introInterval);
     document.getElementById('reveal-overlay').classList.remove('show');
+    document.getElementById('rules-overlay').classList.remove('show');
     gameState.listeners.forEach(l => l.off());
     gameState.listeners = [];
     gameState.room = null;
