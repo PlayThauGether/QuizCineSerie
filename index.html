@@ -448,6 +448,16 @@
         #game-screen.host-view .game-header .score-display { display: none; }
         #game-screen.host-view .game-header .timer { font-size: 2.2rem; }
         #game-screen.host-view .game-header .q-counter { font-size: 1.6rem; }
+        /* Move fullscreen/menu into host header row */
+        body.host-viewing .fullscreen-btn {
+            top: calc(8px + env(safe-area-inset-top, 0px));
+            right: 120px;
+            left: auto;
+        }
+        body.host-viewing .emergency-btn {
+            top: calc(8px + env(safe-area-inset-top, 0px));
+            right: 10px;
+        }
 
         /* Badges row — just below header */
         #game-screen.host-view .difficulty-bar {
@@ -1307,7 +1317,9 @@
             .image-container { aspect-ratio: 16/10; }
             .code-value { font-size: 2rem; }
             .podium-item { min-width: 90px; padding: 0.8rem 0.6rem; }
-            .game-header { padding: 0.6rem 1rem; }
+            .game-header { padding: 0.6rem 1rem; padding-left: 55px; padding-right: 100px; }
+            .fullscreen-btn { width: 34px; height: 34px; font-size: 1rem; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px; }
+            .emergency-btn { font-size: 0.7rem; padding: 0.3rem 0.6rem; top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; }
             .answer-input-row { flex-direction: column; }
             .emoji-grid { grid-template-columns: repeat(6, 44px); }
         }
@@ -1639,7 +1651,12 @@
             <div id="quiz-list-container"></div>
             <div style="margin-top: 1rem;">
                 <h3 style="color: #ffbe0b; margin-bottom: 0.8rem; text-align: center;">📥 Importer un quiz JSON</h3>
-                <input class="input" id="import-quiz-name" placeholder="Nom du quiz..." style="max-width: 100%; margin-bottom: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                    <button type="button" id="import-quiz-emoji-btn" onclick="togglePlaylistEmojiPicker()" style="font-size: 1.5rem; width: 44px; height: 44px; border-radius: 10px; border: 2px solid #8338ec; background: #1a1f3a; cursor: pointer; display: flex; align-items: center; justify-content: center;">🎬</button>
+                    <input class="input" id="import-quiz-name" placeholder="Nom du quiz..." style="flex: 1;">
+                </div>
+                <div id="playlist-emoji-picker" style="display: none; flex-wrap: wrap; gap: 4px; margin-bottom: 0.5rem; padding: 0.5rem; background: #1a1f3a; border: 1px solid #8338ec; border-radius: 10px;">
+                </div>
                 <textarea class="input" id="import-quiz-json" placeholder='Colle ici le JSON généré par le générateur...' style="max-width: 100%; min-height: 100px; resize: vertical; font-family: monospace; font-size: 0.8rem;"></textarea>
                 <button class="btn" style="margin-top: 0.5rem; width: 100%;" onclick="importQuizFromJSON()">📥 Importer</button>
             </div>
@@ -1720,17 +1737,7 @@ const DEMO_QUIZZES = {};
 // ============================================================
 
 // Prevent accidental page refresh during game
-window.addEventListener('beforeunload', function(e) {
-    const activeScreens = ['game-screen', 'lobby-screen', 'waiting-host-screen'];
-    const currentScreen = activeScreens.find(id => {
-        const el = document.getElementById(id);
-        return el && !el.classList.contains('hidden');
-    });
-    if (currentScreen) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
+// (see end of file for actual beforeunload handler)
 
 function genCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -2186,7 +2193,7 @@ async function loadQuizList() {
                 const pack = packs[key];
                 const opt = document.createElement('option');
                 opt.value = 'firebase:' + key;
-                opt.textContent = '📁 ' + (pack.name || key);
+                opt.textContent = (pack.emoji || '📁') + ' ' + (pack.name || key);
                 select.appendChild(opt);
             });
         }
@@ -2223,7 +2230,7 @@ async function refreshQuizManager() {
                 const div = document.createElement('div');
                 div.className = 'quiz-item';
                 div.innerHTML = `
-                    <span class="quiz-item-name">📁 ${pack.name || key}</span>
+                    <span class="quiz-item-name">${pack.emoji || '📁'} ${pack.name || key}</span>
                     <span class="quiz-item-count">${count} films</span>
                     <button class="btn small danger" onclick="deleteQuiz('${key}')">🗑️</button>
                 `;
@@ -2240,6 +2247,7 @@ async function refreshQuizManager() {
 async function importQuizFromJSON() {
     const name = document.getElementById('import-quiz-name').value.trim();
     const jsonText = document.getElementById('import-quiz-json').value.trim();
+    const emoji = document.getElementById('import-quiz-emoji-btn').textContent.trim() || '🎬';
 
     if (!name) { showToast('❌ Donne un nom au quiz !'); return; }
     if (!jsonText) { showToast('❌ Colle le JSON !'); return; }
@@ -2253,10 +2261,11 @@ async function importQuizFromJSON() {
 
         showLoading('Import...');
         const key = name.replace(/[^a-zA-Z0-9_-]/g, '_');
-        await db.ref('filmQuizPacks/' + key).set({ name, data: valid });
+        await db.ref('filmQuizPacks/' + key).set({ name, emoji, data: valid });
 
         document.getElementById('import-quiz-name').value = '';
         document.getElementById('import-quiz-json').value = '';
+        document.getElementById('import-quiz-emoji-btn').textContent = '🎬';
 
         showToast('✅ Quiz importé ! (' + valid.length + ' films)');
         await refreshQuizManager();
@@ -2265,6 +2274,31 @@ async function importQuizFromJSON() {
         showToast('❌ Erreur: ' + e.message);
     }
     hideLoading();
+}
+
+const PLAYLIST_EMOJIS = ['🎬','🎥','🍿','🎭','🎪','🏆','⭐','🔥','💀','👻','🧟','🦸','🚀','💎','🌍','🎄','❤️','😂','🤯','🎮','⚔️','🏴‍☠️','🧙','🐉','🎵','📺','🤖','👽','🦖','🌊'];
+
+function togglePlaylistEmojiPicker() {
+    const picker = document.getElementById('playlist-emoji-picker');
+    if (picker.style.display === 'flex') {
+        picker.style.display = 'none';
+        return;
+    }
+    picker.innerHTML = '';
+    PLAYLIST_EMOJIS.forEach(em => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = em;
+        btn.style.cssText = 'font-size: 1.3rem; width: 38px; height: 38px; border: none; background: transparent; cursor: pointer; border-radius: 8px;';
+        btn.onmouseover = () => btn.style.background = 'rgba(131,56,236,0.3)';
+        btn.onmouseout = () => btn.style.background = 'transparent';
+        btn.onclick = () => {
+            document.getElementById('import-quiz-emoji-btn').textContent = em;
+            picker.style.display = 'none';
+        };
+        picker.appendChild(btn);
+    });
+    picker.style.display = 'flex';
 }
 
 async function deleteQuiz(key) {
@@ -2327,13 +2361,13 @@ async function createRoom() {
     if (isRestart) {
         // Keep existing host info, reset all player scores
         const existingPlayers = gameState.room.players || [];
-        hostName = existingPlayers[0]?.name || '🎛️ Hôte';
-        hostEmoji = existingPlayers[0]?.emoji || '🎬';
+        hostName = existingPlayers[0]?.name || 'Hôte';
+        hostEmoji = existingPlayers[0]?.emoji || '👑';
         players = existingPlayers.map(p => ({ ...p, score: 0 }));
     } else {
         const createName = document.getElementById('create-name').value.trim();
-        hostName = hostMode ? '🎛️ Hôte' : (createName || 'Joueur 1');
-        hostEmoji = hostMode ? '🎬' : gameState.createEmoji;
+        hostName = hostMode ? 'Hôte' : (createName || 'Joueur 1');
+        hostEmoji = hostMode ? '👑' : gameState.createEmoji;
         if (!hostMode && !createName) { showToast('❌ Entre un pseudo !'); hideLoading(); return; }
         players = [{ name: hostName, score: 0, emoji: hostEmoji, isHost: true, team: '' }];
     }
@@ -2641,7 +2675,7 @@ function updateLobby() {
         div.innerHTML = `
             <div class="player-num">${i + 1}</div>
             <span style="font-size: 1.2rem;">${p.emoji || '😀'}</span>
-            <span class="player-name">${p.name}${p.isHost ? ' 👑' : ''}</span>
+            <span class="player-name">${p.name}</span>
         `;
         list.appendChild(div);
     });
@@ -3566,6 +3600,17 @@ window.addEventListener('beforeunload', (e) => {
         return e.returnValue;
     }
 });
+
+// Fix mobile keyboard color bug - prevent gap when keyboard opens/closes
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        document.documentElement.style.height = window.visualViewport.height + 'px';
+        window.scrollTo(0, 0);
+    });
+    window.visualViewport.addEventListener('scroll', () => {
+        window.scrollTo(0, 0);
+    });
+}
 
 // Keep session alive on visibility change (tab switch on mobile)
 document.addEventListener('visibilitychange', () => {
