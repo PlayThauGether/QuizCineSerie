@@ -625,6 +625,12 @@
             border-radius: 4px;
             margin: 1.5rem auto;
         }
+        .rules-text {
+            color: #ddd;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
         .rules-list {
             display: flex;
             flex-direction: column;
@@ -784,33 +790,6 @@
             justify-content: center;
         }
 
-        .host-answers-panel {
-            background: #1a1f3a;
-            border: 2px solid #8338ec;
-            border-radius: 15px;
-            padding: 1rem;
-            margin-top: 1rem;
-            width: 100%;
-            max-width: 500px;
-        }
-        .host-answers-panel h4 {
-            color: #00f5ff;
-            margin-bottom: 0.5rem;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        .host-answer-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.3rem 0.5rem;
-            margin-bottom: 0.3rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-        .host-answer-item.found { background: rgba(0, 255, 100, 0.15); }
-        .host-answer-item.not-found { background: rgba(255, 255, 255, 0.05); }
-
         .leaderboard-title {
             font-size: 2rem;
             font-weight: 800;
@@ -944,27 +923,6 @@
         }
         .quiz-item-name { flex: 1; font-weight: 600; color: #ffbe0b; }
         .quiz-item-count { color: #aaa; font-size: 0.85rem; }
-
-        .movie-entry {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(131, 56, 236, 0.3);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 0.8rem;
-        }
-        .movie-entry h4 { color: #ffbe0b; margin-bottom: 0.5rem; font-size: 0.9rem; }
-        .movie-entry .input {
-            max-width: 100%;
-            padding: 0.6rem;
-            font-size: 0.85rem;
-            margin: 0.3rem 0;
-        }
-        .movie-entry label {
-            display: block;
-            color: #aaa;
-            font-size: 0.75rem;
-            margin-top: 0.3rem;
-        }
 
         .loading-overlay {
             position: fixed;
@@ -1276,10 +1234,6 @@
                     <div class="answer-text" id="reveal-answer-text"></div>
                 </div>
 
-                <div class="host-answers-panel hidden" id="host-answers-panel">
-                    <h4>Réponses des joueurs</h4>
-                    <div id="host-answers-list"></div>
-                </div>
             </div>
 
             <div class="scoreboard-side" id="scoreboard-side">
@@ -1302,6 +1256,13 @@
             <div class="rules-title">3 IMAGES</div>
             <div class="rules-title-sub">1 FILM</div>
             <div class="rules-divider"></div>
+            <div class="rules-text">
+                3 images vont apparaître l'une après l'autre.<br>
+                La première est <strong style="color:#ff4444;">difficile</strong>, la deuxième de <strong style="color:#ffbe0b;">difficulté moyenne</strong> et la troisième plus <strong style="color:#00ff64;">facile</strong>.<br><br>
+                Trouvez le film qui correspond en inscrivant le titre.<br>
+                <span style="color:#00f5ff;">Version française et version anglaise acceptées !</span><br>
+                <span style="color:#aaa;">Les fautes d'orthographe sont tolérées 😉</span>
+            </div>
             <div class="rules-list">
                 <div class="rule-item">
                     <span class="rule-badge hard">🔴</span>
@@ -1317,7 +1278,7 @@
                 </div>
             </div>
             <div class="rules-info">
-                🎯 Tu peux réessayer autant que tu veux tant que le timer tourne !
+                🎯 Tu peux réessayer autant de fois que tu veux tant que le timer tourne !
             </div>
             <div class="rules-countdown">
                 La partie commence dans <span id="rules-timer">15</span>s
@@ -1357,25 +1318,17 @@
     <div class="screen hidden" id="manage-screen">
         <div class="logo">
             <div class="title" style="font-size: 2rem;">Mes Quiz</div>
-            <div class="subtitle">Crée et gère tes quiz</div>
+            <div class="subtitle">Importe et gère tes quiz</div>
         </div>
 
         <div class="quiz-manager-box" id="quiz-list-box">
             <h3 style="color: #00f5ff; margin-bottom: 1rem; text-align: center;">📁 Quiz enregistrés</h3>
             <div id="quiz-list-container"></div>
-            <button class="btn" style="margin-top: 1rem; width: 100%;" onclick="showQuizEditor()">➕ Créer un nouveau quiz</button>
-        </div>
-
-        <div class="quiz-manager-box hidden" id="quiz-editor-box">
-            <h3 style="color: #00f5ff; margin-bottom: 1rem; text-align: center;">✏️ Éditeur de quiz</h3>
-            <input class="input" id="quiz-editor-name" placeholder="Nom du quiz..." style="max-width: 100%; margin-bottom: 1rem;">
-            <div id="quiz-editor-entries"></div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center;">
-                <button class="btn small" onclick="addMovieEntry()">➕ Ajouter un film</button>
-                <button class="btn small secondary" onclick="saveQuiz()">💾 Sauvegarder</button>
-                <button class="btn small outline" onclick="importQuizJSON()">📥 Importer JSON</button>
-                <button class="btn small outline" onclick="exportQuizJSON()">📤 Exporter JSON</button>
-                <button class="btn small danger" onclick="cancelQuizEditor()">✖️ Annuler</button>
+            <div style="margin-top: 1rem;">
+                <h3 style="color: #ffbe0b; margin-bottom: 0.8rem; text-align: center;">📥 Importer un quiz JSON</h3>
+                <input class="input" id="import-quiz-name" placeholder="Nom du quiz..." style="max-width: 100%; margin-bottom: 0.5rem;">
+                <textarea class="input" id="import-quiz-json" placeholder='Colle ici le JSON généré par le générateur...' style="max-width: 100%; min-height: 100px; resize: vertical; font-family: monospace; font-size: 0.8rem;"></textarea>
+                <button class="btn" style="margin-top: 0.5rem; width: 100%;" onclick="importQuizFromJSON()">📥 Importer</button>
             </div>
         </div>
 
@@ -1522,6 +1475,21 @@ function isAnswerSimilar(input, correct) {
     if (maxLen <= 3) return dist === 0;
     if (maxLen <= 6) return dist <= 1;
     return dist <= Math.floor(maxLen * 0.25);
+}
+
+// Check against multiple valid answers separated by " / "
+function isAnswerSimilarMulti(input, answerField) {
+    if (!answerField) return false;
+    // Split by " / " to get all valid answers
+    const validAnswers = answerField.split(' / ').map(a => a.trim()).filter(a => a);
+    return validAnswers.some(answer => isAnswerSimilar(input, answer));
+}
+
+// Get display name (first answer only, for reveal screen)
+function getDisplayAnswer(answerField) {
+    if (!answerField) return '';
+    const parts = answerField.split(' / ');
+    return parts[0].trim();
 }
 
 function showScreen(id) {
@@ -1854,7 +1822,6 @@ async function refreshQuizManager() {
                 div.innerHTML = `
                     <span class="quiz-item-name">📁 ${pack.name || key}</span>
                     <span class="quiz-item-count">${count} films</span>
-                    <button class="btn small outline" onclick="editQuiz('${key}')">✏️</button>
                     <button class="btn small danger" onclick="deleteQuiz('${key}')">🗑️</button>
                 `;
                 container.appendChild(div);
@@ -1867,97 +1834,32 @@ async function refreshQuizManager() {
     }
 }
 
-let editingQuizKey = null;
+async function importQuizFromJSON() {
+    const name = document.getElementById('import-quiz-name').value.trim();
+    const jsonText = document.getElementById('import-quiz-json').value.trim();
 
-function showQuizEditor(existingKey = null, existingData = null) {
-    editingQuizKey = existingKey;
-    document.getElementById('quiz-list-box').classList.add('hidden');
-    document.getElementById('quiz-editor-box').classList.remove('hidden');
-    document.getElementById('quiz-editor-name').value = existingData ? existingData.name : '';
-    document.getElementById('quiz-editor-entries').innerHTML = '';
-
-    if (existingData && existingData.data) {
-        existingData.data.forEach(m => addMovieEntry(m));
-    } else {
-        addMovieEntry();
-        addMovieEntry();
-        addMovieEntry();
-    }
-}
-
-function cancelQuizEditor() {
-    editingQuizKey = null;
-    document.getElementById('quiz-editor-box').classList.add('hidden');
-    document.getElementById('quiz-list-box').classList.remove('hidden');
-}
-
-let movieEntryCounter = 0;
-function addMovieEntry(data = null) {
-    const container = document.getElementById('quiz-editor-entries');
-    const idx = movieEntryCounter++;
-    const div = document.createElement('div');
-    div.className = 'movie-entry';
-    div.id = 'movie-entry-' + idx;
-    div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <h4>🎬 Film #${container.children.length + 1}</h4>
-            <button class="btn small danger" onclick="this.closest('.movie-entry').remove()" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;">✖️</button>
-        </div>
-        <label>Nom du film / série (la réponse)</label>
-        <input class="input movie-answer" value="${data ? data.answer : ''}" placeholder="Ex: Inception">
-        <label>🔴 Image 1 — Difficile (URL)</label>
-        <input class="input movie-img1" value="${data ? data.images[0] : ''}" placeholder="https://...">
-        <label>🟡 Image 2 — Moyenne (URL)</label>
-        <input class="input movie-img2" value="${data ? data.images[1] : ''}" placeholder="https://...">
-        <label>🟢 Image 3 — Facile (URL)</label>
-        <input class="input movie-img3" value="${data ? data.images[2] : ''}" placeholder="https://...">
-        <label>🎬 Affiche du film (révélation)</label>
-        <input class="input movie-img4" value="${data && data.images[3] ? data.images[3] : ''}" placeholder="https://... (affiche officielle)">
-    `;
-    container.appendChild(div);
-}
-
-async function saveQuiz() {
-    const name = document.getElementById('quiz-editor-name').value.trim();
     if (!name) { showToast('❌ Donne un nom au quiz !'); return; }
+    if (!jsonText) { showToast('❌ Colle le JSON !'); return; }
 
-    const entries = document.querySelectorAll('#quiz-editor-entries .movie-entry');
-    const data = [];
-    for (const entry of entries) {
-        const answer = entry.querySelector('.movie-answer').value.trim();
-        const img1 = entry.querySelector('.movie-img1').value.trim();
-        const img2 = entry.querySelector('.movie-img2').value.trim();
-        const img3 = entry.querySelector('.movie-img3').value.trim();
-        const img4 = entry.querySelector('.movie-img4')?.value.trim() || '';
-        if (answer && img1 && img2 && img3) {
-            data.push({ answer, images: [img1, img2, img3, img4] });
-        }
-    }
-
-    if (data.length < 3) { showToast('❌ Minimum 3 films complets !'); return; }
-
-    showLoading('Sauvegarde...');
     try {
-        const key = editingQuizKey || name.replace(/[^a-zA-Z0-9_-]/g, '_');
-        await db.ref('filmQuizPacks/' + key).set({ name, data });
-        showToast('✅ Quiz sauvegardé !');
-        cancelQuizEditor();
+        const data = JSON.parse(jsonText);
+        if (!Array.isArray(data)) throw new Error('Le JSON doit être un tableau');
+
+        const valid = data.filter(m => m.answer && m.images && m.images.length >= 3);
+        if (valid.length < 3) throw new Error('Minimum 3 films complets');
+
+        showLoading('Import...');
+        const key = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        await db.ref('filmQuizPacks/' + key).set({ name, data: valid });
+
+        document.getElementById('import-quiz-name').value = '';
+        document.getElementById('import-quiz-json').value = '';
+
+        showToast('✅ Quiz importé ! (' + valid.length + ' films)');
+        await refreshQuizManager();
         await loadQuizList();
     } catch (e) {
         showToast('❌ Erreur: ' + e.message);
-    }
-    hideLoading();
-}
-
-async function editQuiz(key) {
-    showLoading('Chargement...');
-    try {
-        const snap = await db.ref('filmQuizPacks/' + key).once('value');
-        if (snap.exists()) {
-            showQuizEditor(key, snap.val());
-        }
-    } catch (e) {
-        showToast('❌ Erreur');
     }
     hideLoading();
 }
@@ -1967,57 +1869,11 @@ async function deleteQuiz(key) {
     try {
         await db.ref('filmQuizPacks/' + key).remove();
         showToast('🗑️ Quiz supprimé');
+        await refreshQuizManager();
         await loadQuizList();
     } catch (e) {
         showToast('❌ Erreur');
     }
-}
-
-function exportQuizJSON() {
-    const entries = document.querySelectorAll('#quiz-editor-entries .movie-entry');
-    const data = [];
-    entries.forEach(entry => {
-        const answer = entry.querySelector('.movie-answer').value.trim();
-        const img1 = entry.querySelector('.movie-img1').value.trim();
-        const img2 = entry.querySelector('.movie-img2').value.trim();
-        const img3 = entry.querySelector('.movie-img3').value.trim();
-        const img4 = entry.querySelector('.movie-img4')?.value.trim() || '';
-        if (answer) data.push({ answer, images: [img1, img2, img3, img4] });
-    });
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = (document.getElementById('quiz-editor-name').value || 'quiz') + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function importQuizJSON() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            if (!Array.isArray(data)) throw new Error('Format invalide');
-            document.getElementById('quiz-editor-entries').innerHTML = '';
-            movieEntryCounter = 0;
-            data.forEach(m => {
-                if (m.answer && m.images && m.images.length >= 3) {
-                    addMovieEntry(m);
-                }
-            });
-            showToast('✅ ' + data.length + ' films importés');
-        } catch (err) {
-            showToast('❌ Erreur JSON: ' + err.message);
-        }
-    };
-    input.click();
 }
 
 // ============================================================
@@ -2248,7 +2104,6 @@ function setupRoomListeners(code) {
         const answersRef = roomRef.child('answers');
         answersRef.on('value', snap => {
             if (snap.exists()) {
-                updateHostAnswersPanel(snap.val());
                 updateCorrectAnswersSide(snap.val());
             }
         });
@@ -2488,7 +2343,6 @@ function loadQuestion(qIndex, alreadyAnswered) {
 
     const isHostViewing = gameState.isHost && gameState.hostMode;
     document.getElementById('answer-zone').classList.toggle('hidden', isHostViewing);
-    document.getElementById('host-answers-panel').classList.toggle('hidden', !isHostViewing);
 
     // Sidebars: only show for host in host mode
     const showSidebars = gameState.hostMode && gameState.isHost;
@@ -2648,7 +2502,7 @@ function showAnswerReveal() {
 
     // Show cinematic reveal overlay
     const overlay = document.getElementById('reveal-overlay');
-    document.getElementById('reveal-movie-name').textContent = q.answer;
+    document.getElementById('reveal-movie-name').textContent = getDisplayAnswer(q.answer);
     
     const posterUrl = q.images[3] || q.images[2] || '';
     const posterImg = document.getElementById('reveal-poster');
@@ -2756,7 +2610,7 @@ async function submitAnswer() {
     const q = gameState.quizData[gameState.currentQ];
     if (!q) return;
 
-    const correct = isAnswerSimilar(input, q.answer);
+    const correct = isAnswerSimilarMulti(input, q.answer);
     const imageLevel = gameState.currentImage;
     const points = correct ? (4 - imageLevel) : 0;
 
@@ -2818,34 +2672,6 @@ async function submitAnswer() {
     }
 
     updateSideScores();
-}
-
-// ============================================================
-//  HOST ANSWERS PANEL
-// ============================================================
-function updateHostAnswersPanel(answers) {
-    if (!gameState.isHost) return;
-    const container = document.getElementById('host-answers-list');
-    container.innerHTML = '';
-
-    const players = gameState.room.players || [];
-    players.forEach((p, i) => {
-        if (p.isHost && gameState.hostMode) return;
-        const sn = safeName(p.name);
-        const ans = answers[sn];
-        const div = document.createElement('div');
-        if (ans && ans.questionIndex === gameState.currentQ) {
-            div.className = 'host-answer-item ' + (ans.correct ? 'found' : 'not-found');
-            div.innerHTML = `
-                <span>${p.emoji} ${p.name}</span>
-                <span>${ans.correct ? '✅ +' + ans.points + 'pts (img ' + ans.imageLevel + ')' : '❌ ' + ans.answer}</span>
-            `;
-        } else {
-            div.className = 'host-answer-item not-found';
-            div.innerHTML = `<span>${p.emoji} ${p.name}</span><span style="color: #666;">⏳ En attente...</span>`;
-        }
-        container.appendChild(div);
-    });
 }
 
 // ============================================================
