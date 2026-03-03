@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PTG - Quiz Film & Série 🎬</title>
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
@@ -1322,6 +1322,7 @@
             .emergency-btn { font-size: 0.7rem; padding: 0.3rem 0.6rem; top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; }
             .answer-input-row { flex-direction: column; }
             .emoji-grid { grid-template-columns: repeat(6, 44px); }
+            #game-screen { padding-bottom: 320px !important; }
         }
 
         @media (max-height: 700px) and (max-width: 480px) {
@@ -3601,16 +3602,14 @@ window.addEventListener('beforeunload', (e) => {
     }
 });
 
-// Fix mobile keyboard color bug - prevent gap when keyboard opens/closes
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        document.documentElement.style.height = window.visualViewport.height + 'px';
-        window.scrollTo(0, 0);
-    });
-    window.visualViewport.addEventListener('scroll', () => {
-        window.scrollTo(0, 0);
-    });
-}
+// Fix mobile keyboard: scroll input into view when keyboard opens
+document.addEventListener('focusin', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }
+});
 
 // Keep session alive on visibility change (tab switch on mobile)
 document.addEventListener('visibilitychange', () => {
