@@ -528,6 +528,11 @@
             object-fit: contain;
             display: block;
         }
+        #game-screen.host-view .host-hint-zone {
+            display: block !important; flex-shrink: 0;
+            height: 80px; min-height: 80px; max-height: 80px;
+            visibility: visible;
+        }
         #game-screen.host-view .points-available { display: none; }
         #game-screen.host-view .answer-zone { display: none !important; }
         #game-screen.host-view .answer-reveal { display: none; }
@@ -583,6 +588,7 @@
             padding: 0.8rem 2rem;
             background: transparent;
             flex-shrink: 0;
+            min-height: 70px;
         }
         .host-hint-letters {
             display: flex;
@@ -1290,7 +1296,7 @@
                 padding: 0.4rem 1rem;
             }
             #game-screen.host-view .countdown-number { font-size: 7rem; }
-            #game-screen.host-view .host-hint-zone { padding: 0.5rem 1rem; }
+            #game-screen.host-view .host-hint-zone { padding: 0.5rem 1rem; display: block !important; visibility: hidden; min-height: 70px; }
             .host-hint-letters { font-size: 1.6rem; }
             .hint-char { width: 1.4rem; }
         }
@@ -2852,23 +2858,23 @@ function updateHostHint() {
 
     const isHostViewing = gameState.isHost && gameState.hostMode;
     if (!isHostViewing) {
-        hintZone.style.display = 'none';
+        hintZone.style.visibility = 'hidden';
         return;
     }
 
     const q = gameState.quizData[gameState.currentQ];
-    if (!q) { hintZone.style.display = 'none'; return; }
+    if (!q) { hintZone.style.visibility = 'hidden'; return; }
 
     const imgLevel = gameState.currentImage;
     const title = getDisplayAnswer(q.answer || q.title || '');
 
     if (imgLevel === 1 || !title) {
         // Hard: no hint
-        hintZone.style.display = 'none';
+        hintZone.style.visibility = 'hidden';
         return;
     }
 
-    hintZone.style.display = 'block';
+    hintZone.style.visibility = 'visible';
 
     // Split into words
     const words = title.trim().split(/\s+/);
@@ -3084,7 +3090,7 @@ function showAnswerReveal() {
     stopTickSound();
     // Hide host hint
     const hintZone = document.getElementById('host-hint-zone');
-    if (hintZone) hintZone.style.display = 'none';
+    if (hintZone) hintZone.style.visibility = 'hidden';
     const q = gameState.quizData[gameState.currentQ];
     if (!q) return;
 
