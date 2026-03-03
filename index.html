@@ -39,7 +39,7 @@
         .bg {
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 100%; height: 120vh;
             background:
                 radial-gradient(circle at 20% 50%, rgba(255, 0, 110, 0.1), transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(131, 56, 236, 0.1), transparent 50%),
@@ -452,7 +452,7 @@
         /* Badges row — just below header */
         #game-screen.host-view .difficulty-bar {
             position: fixed;
-            top: 70px;
+            top: 75px;
             left: 240px;
             right: 240px;
             z-index: 45;
@@ -478,8 +478,8 @@
             flex: 1;
             max-width: none;
             width: 100%;
-            height: calc(100vh - 120px);
-            margin-top: 120px;
+            height: calc(100vh - 155px);
+            margin-top: 155px;
             padding: 0;
             position: relative;
             display: flex;
@@ -512,16 +512,15 @@
             border-radius: 15px;
             border: 3px solid #8338ec;
             aspect-ratio: unset;
-            width: calc(100% - 2rem);
-            max-width: 1400px;
-            height: 100%;
-            max-height: calc(100vh - 200px);
+            width: 66vw;
+            max-width: 66vw;
+            height: calc(100vh - 320px);
             background: #000;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            flex-shrink: 1;
+            flex-shrink: 0;
         }
         #game-screen.host-view .image-container img {
             max-width: 100%;
@@ -806,7 +805,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 100%; height: 120vh;
             background: rgba(10, 14, 39, 0.97);
             z-index: 9500;
             flex-direction: column;
@@ -914,7 +913,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 100%; height: 120vh;
             background: rgba(0, 0, 0, 0.92);
             z-index: 9000;
             flex-direction: column;
@@ -1176,7 +1175,7 @@
         .loading-overlay {
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 100%; height: 120vh;
             background: rgba(10, 14, 39, 0.95);
             display: flex;
             flex-direction: column;
