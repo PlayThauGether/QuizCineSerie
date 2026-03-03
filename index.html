@@ -252,22 +252,94 @@
         .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .checkbox-label span { color: #00f5ff; font-weight: 600; }
 
-        .emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 44px);
-            gap: 0.4rem;
-            justify-content: center;
-            margin: 0.5rem auto;
-        }
-        .emoji-btn {
-            background: rgba(255,255,255,0.05);
-            border: 2px solid transparent;
-            border-radius: 10px;
-            font-size: 1.5rem;
-            padding: 0.4rem;
+        /* Emoji chooser button */
+        .emoji-chooser-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 0.7rem 1rem;
+            background: #1a1f3a;
+            border: 2px solid #8338ec;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            color: white;
         }
+        .emoji-chooser-btn:hover { border-color: #ff006e; background: #1e2445; }
+        .emoji-chooser-preview { font-size: 2rem; line-height: 1; }
+        .emoji-chooser-label { flex: 1; text-align: left; font-size: 0.95rem; color: #aaa; font-weight: 500; }
+        .emoji-chooser-arrow { color: #8338ec; font-size: 1.2rem; }
+
+        /* Emoji modal */
+        .emoji-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .emoji-modal-overlay.show { display: flex; }
+        .emoji-modal {
+            background: #12162e;
+            border: 2px solid #8338ec;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 70vh;
+            overflow: hidden;
+            animation: revealFadeIn 0.25s ease;
+        }
+        .emoji-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid rgba(131,56,236,0.3);
+            font-weight: 700;
+            color: #00f5ff;
+        }
+        .emoji-modal-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.6rem;
+            cursor: pointer;
+            padding: 0 0.3rem;
+            line-height: 1;
+        }
+        .emoji-modal-close:hover { color: #ff006e; }
+        .emoji-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.3rem;
+            padding: 0.8rem;
+            max-height: calc(70vh - 60px);
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .emoji-modal-grid::-webkit-scrollbar { display: none; }
+        .emoji-modal-grid .emoji-btn {
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 1.6rem;
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .emoji-modal-grid .emoji-btn:hover { background: rgba(131, 56, 236, 0.3); transform: scale(1.1); }
+        .emoji-modal-grid .emoji-btn.selected { border-color: #ff006e; background: rgba(255, 0, 110, 0.2); transform: scale(1.15); }
         .emoji-btn:hover { background: rgba(131, 56, 236, 0.3); transform: scale(1.1); }
         .emoji-btn.selected { border-color: #ff006e; background: rgba(255, 0, 110, 0.2); transform: scale(1.15); }
 
@@ -1321,7 +1393,7 @@
             .fullscreen-btn { width: 34px; height: 34px; font-size: 1rem; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px; }
             .emergency-btn { font-size: 0.7rem; padding: 0.3rem 0.6rem; top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; }
             .answer-input-row { flex-direction: column; }
-            .emoji-grid { grid-template-columns: repeat(6, 44px); }
+            .emoji-modal-grid { grid-template-columns: repeat(6, 1fr); }
         }
 
         @media (max-height: 700px) and (max-width: 480px) {
@@ -1369,16 +1441,93 @@
     <!-- ============ MENU SCREEN ============ -->
     <div class="screen" id="menu-screen">
         <div class="logo">
-            <div class="title">QUIZ</div>
-            <div class="title" style="font-size: 2rem; margin-top: -0.5rem;">FILM & SÉRIE</div>
-            <div class="subtitle">🎬 3 Images, 1 Film — Trouve le plus vite !</div>
+            <div class="title">QUIZ Play Thau'Gether</div>
+            <div class="title" style="font-size: 2rem; margin-top: -0.5rem;">Film / Série / Jeux Vidéo</div>
+            <div class="subtitle">🎬 3 Images, 1 Oeuvre — Trouve le plus vite !</div>
         </div>
         <div class="menu-buttons">
-            <button class="btn large" onclick="goToCreateScreen()">🎬 Créer une partie</button>
+            <button class="btn large" onclick="requireLoginThen(goToCreateScreen)">🎬 Créer une partie</button>
             <button class="btn large secondary" onclick="showScreen('join-screen')">🎮 Rejoindre</button>
-            <button class="btn outline" onclick="showScreen('manage-screen')">📁 Gérer les quiz</button>
+            <button class="btn outline" onclick="requireLoginThen(function(){ showScreen('manage-screen'); })">📁 Gérer les quiz</button>
+            <button id="admin-menu-btn" class="btn" onclick="goToAdmin()" style="display: none;">👥 Gérer les comptes</button>
+            <button id="account-menu-btn" class="btn" onclick="goToAccount()" style="display: none;">⚙️ Mon Compte</button>
+            <button id="logout-btn" class="btn danger" onclick="doLogout()" style="display: none; font-size: 0.85rem; padding: 0.6rem 1.2rem;">🔓 Déconnexion (<span id="logged-user"></span>)</button>
+            <button id="login-menu-btn" class="btn" onclick="showLoginScreen()" style="font-size: 0.85rem; padding: 0.6rem 1.2rem;">🔑 Connexion Organisateur</button>
             <a class="btn outline" href="https://campsite.bio/playthaugether" target="_blank">📱 Nos réseaux</a>
         </div>
+    </div>
+
+    <!-- ============ LOGIN SCREEN ============ -->
+    <div class="screen hidden" id="login-screen">
+        <div class="logo">
+            <div class="title" style="font-size: 2rem;">CONNEXION</div>
+            <div class="subtitle">Espace Organisateur</div>
+        </div>
+        <div style="width: 100%; max-width: 400px;">
+            <input id="login-username" class="input" placeholder="Nom d'utilisateur" autocomplete="username">
+            <input id="login-password" class="input" type="password" placeholder="Mot de passe" autocomplete="current-password">
+            <button class="btn large" onclick="doLogin()" style="width: 100%; margin-top: 1rem;">🔑 Connexion</button>
+            <p id="login-error" style="color: #ff006e; text-align: center; margin-top: 1rem; display: none;"></p>
+            <button class="btn outline" onclick="showScreen('menu-screen')" style="width: 100%; margin-top: 0.5rem;">← Retour</button>
+        </div>
+    </div>
+
+    <!-- ============ SETUP SCREEN (premier admin) ============ -->
+    <div class="screen hidden" id="setup-screen">
+        <div class="logo">
+            <div class="title" style="font-size: 2rem;">INSTALLATION</div>
+            <div class="subtitle">Première configuration</div>
+        </div>
+        <div style="width: 100%; max-width: 400px;">
+            <p style="text-align: center; color: #00f5ff; margin-bottom: 1.5rem; font-size: 1.1rem;">
+                Crée ton compte administrateur pour commencer :
+            </p>
+            <input id="setup-username" class="input" placeholder="Ton nom d'utilisateur">
+            <input id="setup-password" class="input" type="password" placeholder="Ton mot de passe">
+            <input id="setup-password2" class="input" type="password" placeholder="Confirme le mot de passe">
+            <button class="btn large" onclick="doSetup()" style="width: 100%; margin-top: 1rem;">🚀 Créer le compte admin</button>
+        </div>
+    </div>
+
+    <!-- ============ ADMIN SCREEN ============ -->
+    <div class="screen hidden" id="admin-screen">
+        <div class="logo">
+            <div class="title" style="font-size: 2rem;">ADMIN</div>
+            <div class="subtitle">Gestion des comptes</div>
+        </div>
+        <div class="quiz-manager-box" style="margin-bottom: 2rem;">
+            <h3 style="color: #00f5ff; margin-bottom: 1rem; text-align: center;">➕ Ajouter un utilisateur</h3>
+            <input id="admin-new-user" class="input" placeholder="Nom d'utilisateur" style="max-width: 100%;">
+            <input id="admin-new-pass" class="input" type="password" placeholder="Mot de passe" style="max-width: 100%;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #ccc; cursor: pointer;">
+                <input type="checkbox" id="admin-new-isadmin">
+                <span>Administrateur</span>
+            </label>
+            <button class="btn" onclick="adminAddUser()" style="width: 100%;">✅ Créer le compte</button>
+        </div>
+        <div class="quiz-manager-box">
+            <h3 style="color: #00f5ff; margin-bottom: 1rem; text-align: center;">📋 Utilisateurs existants</h3>
+            <div id="admin-users-list"></div>
+        </div>
+        <button class="btn outline" onclick="showScreen('menu-screen')" style="margin-top: 2rem;">← Retour au menu</button>
+    </div>
+
+    <!-- ============ ACCOUNT SCREEN ============ -->
+    <div class="screen hidden" id="account-screen">
+        <div class="logo">
+            <div class="title" style="font-size: 2rem;">MON COMPTE</div>
+            <div class="subtitle">Paramètres</div>
+        </div>
+        <div class="quiz-manager-box" style="max-width: 400px; margin: 0 auto;">
+            <h3 style="color: #00f5ff; margin-bottom: 1.5rem; text-align: center;">🔒 Changer mon mot de passe</h3>
+            <input id="account-old-pass" class="input" type="password" placeholder="Mot de passe actuel" style="max-width: 100%;">
+            <input id="account-new-pass" class="input" type="password" placeholder="Nouveau mot de passe" style="max-width: 100%;">
+            <input id="account-new-pass2" class="input" type="password" placeholder="Confirmer le nouveau mot de passe" style="max-width: 100%;">
+            <p id="account-error" style="color: #ff006e; display: none; margin-top: 0.5rem; font-size: 0.9rem;"></p>
+            <p id="account-success" style="color: #00c864; display: none; margin-top: 0.5rem; font-size: 0.9rem;"></p>
+            <button class="btn large" onclick="changeMyPassword()" style="margin-top: 1rem; width: 100%;">✅ Changer le mot de passe</button>
+        </div>
+        <button class="btn outline" onclick="showScreen('menu-screen')" style="margin-top: 2rem;">← Retour au menu</button>
     </div>
 
     <!-- ============ CREATE SCREEN ============ -->
@@ -1395,11 +1544,15 @@
 
         <div class="section" id="create-emoji-section">
             <h3>😎 Ton emoji</h3>
-            <div class="emoji-grid" id="create-emoji-grid"></div>
+            <button type="button" class="emoji-chooser-btn" id="create-emoji-chooser" onclick="openEmojiModal('create')">
+                <span class="emoji-chooser-preview" id="create-emoji-preview">😀</span>
+                <span class="emoji-chooser-label">Choisis ton emoji</span>
+                <span class="emoji-chooser-arrow">▾</span>
+            </button>
         </div>
 
         <div class="section">
-            <h3>📁 Quiz</h3>
+            <h3> Choisis ton Quiz</h3>
             <select class="select" id="quiz-select">
                 <option value="">-- Choisis un quiz --</option>
             </select>
@@ -1418,11 +1571,11 @@
         <div class="section">
             <label class="checkbox-label">
                 <input type="checkbox" id="host-mode-check">
-                <span>🎛️ Mode Hôte (ne joue pas)</span>
+                <span>🎛️ Mode Hôte (Affichage seulement, ne joue pas)</span>
             </label>
             <label class="checkbox-label">
                 <input type="checkbox" id="team-mode-check">
-                <span>👥 Mode Équipe</span>
+                <span>👥 Mode Équipe (2 Équipes, Aléatoire)</span>
             </label>
         </div>
 
@@ -1443,7 +1596,11 @@
 
         <div class="section">
             <h3>😎 Ton emoji</h3>
-            <div class="emoji-grid" id="emoji-grid"></div>
+            <button type="button" class="emoji-chooser-btn" id="join-emoji-chooser" onclick="openEmojiModal('join')">
+                <span class="emoji-chooser-preview" id="join-emoji-preview">😀</span>
+                <span class="emoji-chooser-label">Choisis ton emoji</span>
+                <span class="emoji-chooser-arrow">▾</span>
+            </button>
         </div>
 
         <div class="section">
@@ -1665,6 +1822,17 @@
         <button class="btn outline" style="margin-top: 1rem;" onclick="showScreen('menu-screen')">← Retour au menu</button>
     </div>
 
+    <!-- ============ EMOJI MODAL ============ -->
+    <div class="emoji-modal-overlay" id="emoji-modal" onclick="closeEmojiModal(event)">
+        <div class="emoji-modal" onclick="event.stopPropagation()">
+            <div class="emoji-modal-header">
+                <span>😎 Choisis ton emoji</span>
+                <button type="button" class="emoji-modal-close" onclick="closeEmojiModal()">&times;</button>
+            </div>
+            <div class="emoji-modal-grid" id="emoji-modal-grid"></div>
+        </div>
+    </div>
+
     <!-- ============ LOADING OVERLAY ============ -->
     <div class="loading-overlay hidden" id="loading-overlay">
         <div class="spinner"></div>
@@ -1693,6 +1861,258 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+const db = firebase.database();
+
+// ============================================================
+//  AUTHENTIFICATION
+// ============================================================
+let currentUser = null; // { username, isAdmin }
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + '_quizfilm_salt');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function initAuth() {
+    const saved = localStorage.getItem('quizFilmAuth');
+    if (saved) {
+        try {
+            const session = JSON.parse(saved);
+            const userSnap = await db.ref('appUsers/' + session.username).once('value');
+            if (userSnap.val()) {
+                currentUser = { username: session.username, isAdmin: userSnap.val().isAdmin || false };
+            }
+        } catch(e) {
+            localStorage.removeItem('quizFilmAuth');
+        }
+    }
+    updateMenuButtons();
+}
+
+function updateMenuButtons() {
+    if (currentUser) {
+        document.getElementById('logged-user').textContent = currentUser.username;
+        document.getElementById('logout-btn').style.display = '';
+        document.getElementById('login-menu-btn').style.display = 'none';
+        document.getElementById('admin-menu-btn').style.display = currentUser.isAdmin ? '' : 'none';
+        document.getElementById('account-menu-btn').style.display = '';
+    } else {
+        document.getElementById('logout-btn').style.display = 'none';
+        document.getElementById('login-menu-btn').style.display = '';
+        document.getElementById('admin-menu-btn').style.display = 'none';
+        document.getElementById('account-menu-btn').style.display = 'none';
+    }
+}
+
+function showLoginScreen() {
+    showScreen('login-screen');
+}
+
+let pendingAction = null;
+function requireLoginThen(action) {
+    if (currentUser) {
+        action();
+        return;
+    }
+    pendingAction = action;
+    db.ref('appUsers').once('value', function(snap) {
+        if (!snap.val() || Object.keys(snap.val()).length === 0) {
+            showScreen('setup-screen');
+        } else {
+            showScreen('login-screen');
+        }
+    });
+}
+
+async function doSetup() {
+    var username = document.getElementById('setup-username').value.trim();
+    var pass = document.getElementById('setup-password').value;
+    var pass2 = document.getElementById('setup-password2').value;
+
+    if (!username || username.length < 2) { showToast('⚠️ Nom trop court (2 car. min)'); return; }
+    if (!pass || pass.length < 4) { showToast('⚠️ Mot de passe trop court (4 car. min)'); return; }
+    if (pass !== pass2) { showToast('⚠️ Les mots de passe ne correspondent pas'); return; }
+
+    var hash = await hashPassword(pass);
+    var safeKey = username.replace(/[.#$[\]\/]/g, '_');
+
+    await db.ref('appUsers/' + safeKey).set({
+        username: username,
+        passwordHash: hash,
+        isAdmin: true,
+        createdAt: Date.now()
+    });
+
+    currentUser = { username: safeKey, isAdmin: true };
+    localStorage.setItem('quizFilmAuth', JSON.stringify({ username: safeKey }));
+
+    showToast('✅ Compte admin "' + username + '" créé !');
+    updateMenuButtons();
+    showScreen('menu-screen');
+    if (pendingAction) { var action = pendingAction; pendingAction = null; action(); }
+}
+
+async function doLogin() {
+    var username = document.getElementById('login-username').value.trim();
+    var pass = document.getElementById('login-password').value;
+    var errorEl = document.getElementById('login-error');
+
+    if (!username || !pass) {
+        errorEl.textContent = '⚠️ Remplis tous les champs';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    var safeKey = username.replace(/[.#$[\]\/]/g, '_');
+    var hash = await hashPassword(pass);
+
+    var userSnap = await db.ref('appUsers/' + safeKey).once('value');
+    var userData = userSnap.val();
+
+    if (!userData || userData.passwordHash !== hash) {
+        errorEl.textContent = '❌ Identifiants incorrects';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    errorEl.style.display = 'none';
+    currentUser = { username: safeKey, isAdmin: userData.isAdmin || false };
+    localStorage.setItem('quizFilmAuth', JSON.stringify({ username: safeKey }));
+
+    updateMenuButtons();
+    showScreen('menu-screen');
+    if (pendingAction) { var action = pendingAction; pendingAction = null; action(); }
+}
+
+function doLogout() {
+    currentUser = null;
+    pendingAction = null;
+    localStorage.removeItem('quizFilmAuth');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').style.display = 'none';
+    updateMenuButtons();
+    showScreen('menu-screen');
+}
+
+function goToAccount() {
+    if (!currentUser) return;
+    document.getElementById('account-old-pass').value = '';
+    document.getElementById('account-new-pass').value = '';
+    document.getElementById('account-new-pass2').value = '';
+    document.getElementById('account-error').style.display = 'none';
+    document.getElementById('account-success').style.display = 'none';
+    showScreen('account-screen');
+}
+
+async function changeMyPassword() {
+    if (!currentUser) return;
+    var oldPass = document.getElementById('account-old-pass').value;
+    var newPass = document.getElementById('account-new-pass').value;
+    var newPass2 = document.getElementById('account-new-pass2').value;
+    var errorEl = document.getElementById('account-error');
+    var successEl = document.getElementById('account-success');
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    if (!oldPass || !newPass || !newPass2) { errorEl.textContent = '⚠️ Remplis tous les champs'; errorEl.style.display = 'block'; return; }
+    if (newPass.length < 4) { errorEl.textContent = '⚠️ Nouveau mot de passe trop court (4 car. min)'; errorEl.style.display = 'block'; return; }
+    if (newPass !== newPass2) { errorEl.textContent = '⚠️ Les mots de passe ne correspondent pas'; errorEl.style.display = 'block'; return; }
+
+    var oldHash = await hashPassword(oldPass);
+    var userSnap = await db.ref('appUsers/' + currentUser.username).once('value');
+    var userData = userSnap.val();
+
+    if (!userData || userData.passwordHash !== oldHash) { errorEl.textContent = '❌ Mot de passe actuel incorrect'; errorEl.style.display = 'block'; return; }
+
+    var newHash = await hashPassword(newPass);
+    await db.ref('appUsers/' + currentUser.username + '/passwordHash').set(newHash);
+
+    document.getElementById('account-old-pass').value = '';
+    document.getElementById('account-new-pass').value = '';
+    document.getElementById('account-new-pass2').value = '';
+    successEl.textContent = '✅ Mot de passe changé !';
+    successEl.style.display = 'block';
+}
+
+async function goToAdmin() {
+    if (!currentUser || !currentUser.isAdmin) return;
+    showScreen('admin-screen');
+    await refreshAdminUsersList();
+}
+
+async function refreshAdminUsersList() {
+    var snap = await db.ref('appUsers').once('value');
+    var users = snap.val() || {};
+    var list = document.getElementById('admin-users-list');
+    list.innerHTML = '';
+    Object.keys(users).forEach(function(key) {
+        var u = users[key];
+        var div = document.createElement('div');
+        div.style.cssText = 'background: rgba(0,0,0,0.3); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;';
+        var isMe = key === currentUser.username;
+        div.innerHTML = '<div>' +
+            '<span style="font-weight:800;color:' + (u.isAdmin ? '#ffbe0b' : 'white') + ';">' + (u.username || key) + '</span>' +
+            (u.isAdmin ? '<span style="color:#ffbe0b;font-size:0.8rem;margin-left:0.5rem;">👑 Admin</span>' : '') +
+            (isMe ? '<span style="color:#00f5ff;font-size:0.8rem;margin-left:0.5rem;">(toi)</span>' : '') +
+            '</div><div style="display:flex;gap:0.4rem;">' +
+            '<button class="btn" style="font-size:0.75rem;padding:0.4rem 0.8rem;background:rgba(0,245,255,0.2);" onclick="adminResetPassword(\'' + key + '\')">🔑</button>' +
+            (!isMe ? '<button class="btn" style="font-size:0.75rem;padding:0.4rem 0.8rem;background:rgba(255,0,110,0.3);" onclick="adminDeleteUser(\'' + key + '\')">🗑️</button>' : '') +
+            '</div>';
+        list.appendChild(div);
+    });
+}
+
+async function adminAddUser() {
+    if (!currentUser || !currentUser.isAdmin) return;
+    var username = document.getElementById('admin-new-user').value.trim();
+    var pass = document.getElementById('admin-new-pass').value;
+    var isAdmin = document.getElementById('admin-new-isadmin').checked;
+
+    if (!username || username.length < 2) { showToast('⚠️ Nom trop court'); return; }
+    if (!pass || pass.length < 4) { showToast('⚠️ Mot de passe trop court'); return; }
+
+    var safeKey = username.replace(/[.#$[\]\/]/g, '_');
+    var existing = await db.ref('appUsers/' + safeKey).once('value');
+    if (existing.val()) { showToast('❌ Ce nom existe déjà !'); return; }
+
+    var hash = await hashPassword(pass);
+    await db.ref('appUsers/' + safeKey).set({
+        username: username,
+        passwordHash: hash,
+        isAdmin: isAdmin,
+        createdAt: Date.now()
+    });
+
+    document.getElementById('admin-new-user').value = '';
+    document.getElementById('admin-new-pass').value = '';
+    document.getElementById('admin-new-isadmin').checked = false;
+    showToast('✅ Compte "' + username + '" créé !');
+    await refreshAdminUsersList();
+}
+
+async function adminDeleteUser(key) {
+    if (!currentUser || !currentUser.isAdmin) return;
+    if (key === currentUser.username) { showToast('❌ Tu ne peux pas te supprimer toi-même'); return; }
+    if (!confirm('Supprimer le compte "' + key + '" ?')) return;
+    await db.ref('appUsers/' + key).remove();
+    showToast('✅ Compte supprimé');
+    await refreshAdminUsersList();
+}
+
+async function adminResetPassword(key) {
+    if (!currentUser || !currentUser.isAdmin) return;
+    var newPass = prompt('Nouveau mot de passe pour "' + key + '" :');
+    if (!newPass) return;
+    if (newPass.length < 4) { showToast('⚠️ Mot de passe trop court'); return; }
+    var hash = await hashPassword(newPass);
+    await db.ref('appUsers/' + key + '/passwordHash').set(hash);
+    showToast('✅ Mot de passe réinitialisé !');
+}
 
 // ============================================================
 //  GAME STATE
@@ -1725,7 +2145,13 @@ const gameState = {
 // ============================================================
 //  EMOJIS
 // ============================================================
-const EMOJIS = ['😀','😎','🤩','🥳','😈','👻','🤖','🎃','🦊','🐱','🐶','🦁','🐸','🦄','🐧','🐼','🎯','⚡','🔥','💎','🌟','💀','👽','🤡'];
+const EMOJIS = [
+    '😀','😎','🤩','🥳','😈','🤓','😇','🥶','🤠','😱','🤑','😏','🤫','😴','🤪','😡',
+    '🦊','🐱','🐶','🦁','🐸','🦄','🐧','🐼','🐨','🐯','🐮','🐷','🐵','🦋','🐝','🦈',
+    '👻','🤖','🎃','💀','👽','🤡','🧛','🧟','🧙','🦸','🥷','👸','🤴','🎅','👹','👺',
+    '🎯','⚡','🔥','💎','🌟','🌈','💫','🍀','🎲','🔮','💣','⭐','🏆','🎵','🎸','🎮',
+    '🍕','🍔','🍟','🍣','🍩','🍿','🍪','🍉','🍓','🍺','☕','🥤','🍷','🍭','🎂','🥐'
+];
 
 // ============================================================
 //  DEMO QUIZ DATA
@@ -2098,33 +2524,45 @@ document.addEventListener('click', () => {
 // ============================================================
 //  INIT UI
 // ============================================================
-function initUI() {
-    const emojiGrid = document.getElementById('emoji-grid');
-    EMOJIS.forEach((em, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'emoji-btn' + (i === 0 ? ' selected' : '');
-        btn.textContent = em;
-        btn.onclick = () => {
-            emojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            gameState.selectedEmoji = em;
-        };
-        emojiGrid.appendChild(btn);
-    });
+let activeEmojiTarget = null; // 'create' or 'join'
 
-    // Create screen emoji grid
-    const createEmojiGrid = document.getElementById('create-emoji-grid');
-    EMOJIS.forEach((em, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'emoji-btn' + (i === 0 ? ' selected' : '');
+function openEmojiModal(target) {
+    activeEmojiTarget = target;
+    var modal = document.getElementById('emoji-modal');
+    var grid = document.getElementById('emoji-modal-grid');
+    var currentEmoji = target === 'create' ? gameState.createEmoji : gameState.selectedEmoji;
+    grid.innerHTML = '';
+    EMOJIS.forEach(function(em) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-btn' + (em === currentEmoji ? ' selected' : '');
         btn.textContent = em;
-        btn.onclick = () => {
-            createEmojiGrid.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        btn.onclick = function() {
+            grid.querySelectorAll('.emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
             btn.classList.add('selected');
-            gameState.createEmoji = em;
+            if (target === 'create') {
+                gameState.createEmoji = em;
+                document.getElementById('create-emoji-preview').textContent = em;
+            } else {
+                gameState.selectedEmoji = em;
+                document.getElementById('join-emoji-preview').textContent = em;
+            }
+            setTimeout(function() { closeEmojiModal(); }, 150);
         };
-        createEmojiGrid.appendChild(btn);
+        grid.appendChild(btn);
     });
+    modal.classList.add('show');
+}
+
+function closeEmojiModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('emoji-modal').classList.remove('show');
+}
+
+function initUI() {
+    // Set default emojis
+    gameState.selectedEmoji = EMOJIS[0];
+    gameState.createEmoji = EMOJIS[0];
 
     const numGrid = document.getElementById('num-grid');
     [5, 10, 15, 20, 25].forEach(n => {
@@ -2163,7 +2601,7 @@ function initUI() {
     // Toggle name/emoji visibility based on host mode
     document.getElementById('host-mode-check').addEventListener('change', (e) => {
         const nameSection = document.getElementById('create-name').closest('.section');
-        const emojiSection = document.getElementById('create-emoji-grid').closest('.section');
+        const emojiSection = document.getElementById('create-emoji-section');
         nameSection.classList.toggle('hidden', e.target.checked);
         emojiSection.classList.toggle('hidden', e.target.checked);
     });
@@ -3588,6 +4026,7 @@ function backToMenu() {
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+    await initAuth();
     initUI();
     await tryReconnect();
 });
