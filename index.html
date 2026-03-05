@@ -1224,6 +1224,7 @@
         .fun-stat-wide { grid-column: 1 / -1; }
         .fun-stat .stat-icon { font-size: 1.3rem; margin-bottom: 0.15rem; }
         .fun-stat .stat-title { color: #00f5ff; font-size: 0.7rem; font-weight: 600; line-height: 1.2; }
+        .fun-stat .stat-desc { color: #666; font-size: 0.55rem; font-weight: 500; line-height: 1.2; margin-top: 0.1rem; }
         .fun-stat .stat-value { color: #ffbe0b; font-size: 0.8rem; font-weight: 800; margin-top: 0.2rem; line-height: 1.3; word-break: break-word; }
 
         .quiz-manager-box {
@@ -2421,6 +2422,30 @@ function genCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Auto-cleanup rooms older than 6 hours
+async function cleanupOldRooms() {
+    try {
+        var snap = await db.ref('filmQuizRooms').once('value');
+        if (!snap.exists()) return;
+        var rooms = snap.val();
+        var now = Date.now();
+        var sixHours = 6 * 60 * 60 * 1000;
+        var deleted = 0;
+        var keys = Object.keys(rooms);
+        for (var i = 0; i < keys.length; i++) {
+            var room = rooms[keys[i]];
+            // Delete rooms that are finished or have no recent activity
+            var created = room.createdAt || 0;
+            var phase = room.gamePhase || '';
+            if (phase === 'finished' || (created && now - created > sixHours)) {
+                await db.ref('filmQuizRooms/' + keys[i]).remove();
+                deleted++;
+            }
+        }
+        if (deleted > 0) console.log('Cleaned up ' + deleted + ' old room(s)');
+    } catch(e) {}
+}
+
 function shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -3096,7 +3121,8 @@ async function createRoom() {
         quizData: shuffledQuiz,
         players,
         answers: {},
-        newGameCode: ''
+        newGameCode: '',
+        createdAt: Date.now()
     };
 
     try {
@@ -3304,23 +3330,13 @@ function setupRoomListeners(code) {
     });
     gameState.listeners.push(revealRef);
 
-    if (gameState.isHost) {
-        const answersRef = roomRef.child('answers');
-        answersRef.on('value', snap => {
-            if (snap.exists()) {
-                updateCorrectAnswersSide(snap.val());
-            }
-        });
-        gameState.listeners.push(answersRef);
-    } else {
-        const answersRef = roomRef.child('answers');
-        answersRef.on('value', snap => {
-            if (snap.exists()) {
-                updateCorrectAnswersSide(snap.val());
-            }
-        });
-        gameState.listeners.push(answersRef);
-    }
+    const answersRef = roomRef.child('answers');
+    answersRef.on('value', snap => {
+        if (snap.exists()) {
+            updateCorrectAnswersSide(snap.val());
+        }
+    });
+    gameState.listeners.push(answersRef);
 
     const newGameRef = roomRef.child('newGameCode');
     newGameRef.on('value', snap => {
@@ -4466,11 +4482,16 @@ async function hostNextQuestion() {
     const nextQ = gameState.currentQ + 1;
 
     if (nextQ >= gameState.quizData.length) {
-        // Signal game over to all players via Firebase
+        // Signal game over to all players via Firebase + clean transient data
         try {
             await db.ref('filmQuizRooms/' + gameState.room.code).update({
                 gamePhase: 'finished',
-                revealAnswer: false
+                revealAnswer: false,
+                reactions: null,
+                buzz: null,
+                buzzState: null,
+                paused: null,
+                answers: null
             });
         } catch (e) {}
         showLeaderboard();
@@ -4750,33 +4771,33 @@ function generateFunStats(players) {
     // === PLAYER STATS ===
 
     // 1. MVP
-    stats.push({ icon: '👑', title: 'MVP', value: players[0].emoji + ' ' + players[0].name });
+    stats.push({ icon: '👑', title: 'MVP', desc: 'Meilleur score de la partie', value: players[0].emoji + ' ' + players[0].name });
 
     // 2. Doit revoir ses classiques
     if (players.length > 1) {
         var last = players[players.length - 1];
-        stats.push({ icon: '🐢', title: 'Doit revoir ses classiques', value: last.emoji + ' ' + last.name });
+        stats.push({ icon: '🐢', title: 'Doit revoir ses classiques', desc: 'Le dernier du classement', value: last.emoji + ' ' + last.name });
     }
 
     // 3. Éclair — most answers on image 1
     var eclairArr = Object.entries(ps).filter(function(e) { return e[1].img1 > 0; })
         .sort(function(a, b) { return b[1].img1 - a[1].img1; });
     if (eclairArr.length > 0) {
-        stats.push({ icon: '⚡', title: 'Éclair', value: eclairArr[0][1].emoji + ' ' + eclairArr[0][0] + ' (' + eclairArr[0][1].img1 + '× 🔴)' });
+        stats.push({ icon: '⚡', title: 'Éclair', desc: 'Le plus de réponses sur image difficile', value: eclairArr[0][1].emoji + ' ' + eclairArr[0][0] + ' (' + eclairArr[0][1].img1 + '× 🔴)' });
     }
 
     // 4. Patience est mère de vertu — most answers on image 3
     var patienceArr = Object.entries(ps).filter(function(e) { return e[1].img3 > 0; })
         .sort(function(a, b) { return b[1].img3 - a[1].img3; });
     if (patienceArr.length > 0) {
-        stats.push({ icon: '🐌', title: 'Patience est mère de vertu', value: patienceArr[0][1].emoji + ' ' + patienceArr[0][0] + ' (' + patienceArr[0][1].img3 + '× 🟢)' });
+        stats.push({ icon: '🐌', title: 'Patience est mère de vertu', desc: 'Le plus de réponses sur image facile', value: patienceArr[0][1].emoji + ' ' + patienceArr[0][0] + ' (' + patienceArr[0][1].img3 + '× 🟢)' });
     }
 
     // 5. Fantôme — fewest correct answers
     var fantomeArr = Object.entries(ps).sort(function(a, b) { return a[1].correctCount - b[1].correctCount; });
     if (fantomeArr.length > 0) {
         var f = fantomeArr[0];
-        stats.push({ icon: '👻', title: 'Fantôme', value: f[1].emoji + ' ' + f[0] + ' (' + f[1].correctCount + ' bonne' + (f[1].correctCount > 1 ? 's' : '') + ')' });
+        stats.push({ icon: '👻', title: 'Fantôme', desc: 'Le moins de bonnes réponses', value: f[1].emoji + ' ' + f[0] + ' (' + f[1].correctCount + ' bonne' + (f[1].correctCount > 1 ? 's' : '') + ')' });
     }
 
     // 6. Chanceux — most answers in extremis (image 3)
@@ -4788,7 +4809,7 @@ function generateFunStats(players) {
         });
     if (chanceuxArr.length > 0 && chanceuxArr[0][1].img3 > 0) {
         var ch = chanceuxArr[0];
-        stats.push({ icon: '🎰', title: 'Chanceux', value: ch[1].emoji + ' ' + ch[0] + ' (' + ch[1].img3 + '/' + ch[1].correctCount + ' in extremis)' });
+        stats.push({ icon: '🎰', title: 'Chanceux', desc: 'Le plus haut ratio de réponses in extremis', value: ch[1].emoji + ' ' + ch[0] + ' (' + ch[1].img3 + '/' + ch[1].correctCount + ' in extremis)' });
     }
 
     // 7. Chrono-Maître — lowest avg response time
@@ -4797,7 +4818,7 @@ function generateFunStats(players) {
     if (chronoArr.length > 0) {
         var cr = chronoArr[0];
         var avgSec = (cr[1].totalTime / cr[1].correctCount / 1000).toFixed(1);
-        stats.push({ icon: '⏱️', title: 'Chrono-Maître', value: cr[1].emoji + ' ' + cr[0] + ' (moy. ' + avgSec + 's)' });
+        stats.push({ icon: '⏱️', title: 'Chrono-Maître', desc: 'Temps moyen de réponse le plus rapide', value: cr[1].emoji + ' ' + cr[0] + ' (moy. ' + avgSec + 's)' });
     }
 
     // 8. Pépite — seul à trouver sur image 1 quand personne d'autre n'a trouvé
@@ -4809,7 +4830,7 @@ function generateFunStats(players) {
         }
     });
     if (pepite) {
-        stats.push({ icon: '💎', title: 'Pépite', value: pepite.emoji + ' ' + pepite.name });
+        stats.push({ icon: '💎', title: 'Pépite', desc: 'Seul à trouver sur image difficile', value: pepite.emoji + ' ' + pepite.name });
     }
 
     // === QUESTION STATS ===
@@ -4819,7 +4840,7 @@ function generateFunStats(players) {
         var wallSorted = history.slice().sort(function(a, b) { return a.correct.length - b.correct.length; });
         var wall = wallSorted[0];
         var wallTitle = wall.title.length > 20 ? wall.title.substring(0, 18) + '…' : wall.title;
-        stats.push({ icon: '🧱', title: 'Le Mur', value: '"' + wallTitle + '" (' + wall.correct.length + '/' + wall.totalPlayers + ')' });
+        stats.push({ icon: '🧱', title: 'Le Mur', desc: 'La question la moins trouvée', value: '"' + wallTitle + '" (' + wall.correct.length + '/' + wall.totalPlayers + ')' });
     }
 
     // 10. Trop Facile — question la plus trouvée
@@ -4827,7 +4848,7 @@ function generateFunStats(players) {
         var easySorted = history.slice().sort(function(a, b) { return b.correct.length - a.correct.length; });
         var easy = easySorted[0];
         var easyTitle = easy.title.length > 20 ? easy.title.substring(0, 18) + '…' : easy.title;
-        stats.push({ icon: '🎯', title: 'Trop Facile', value: '"' + easyTitle + '" (' + easy.correct.length + '/' + easy.totalPlayers + ')' });
+        stats.push({ icon: '🎯', title: 'Trop Facile', desc: 'La question la plus trouvée', value: '"' + easyTitle + '" (' + easy.correct.length + '/' + easy.totalPlayers + ')' });
     }
 
     // 11. L'Everest — tout le monde a eu besoin de l'image 3, plus long temps
@@ -4841,13 +4862,13 @@ function generateFunStats(players) {
     });
     if (everest) {
         var evTitle = everest.title.length > 20 ? everest.title.substring(0, 18) + '…' : everest.title;
-        stats.push({ icon: '🧗', title: "L'Everest", value: '"' + evTitle + '"' });
+        stats.push({ icon: '🧗', title: "L'Everest", desc: 'Tout le monde a eu besoin de l\'image facile', value: '"' + evTitle + '"' });
     }
 
     // 12. Questions mortelles — questions sans aucune bonne réponse
     var deadCount = history.filter(function(r) { return r.correct.length === 0; }).length;
     if (deadCount > 0) {
-        stats.push({ icon: '💀', title: 'Questions mortelles', value: deadCount + ' / ' + history.length });
+        stats.push({ icon: '💀', title: 'Questions mortelles', desc: 'Questions sans aucune bonne réponse', value: deadCount + ' / ' + history.length });
     }
 
     // 13. Podium des plus rapides — top 3 réponses image 1
@@ -4864,7 +4885,7 @@ function generateFunStats(players) {
         var medals = ['🥇', '🥈', '🥉'];
         var top3 = fastAnswers.slice(0, 3);
         var podText = top3.map(function(p, i) { return medals[i] + ' ' + p.emoji + ' ' + p.name + ' (' + p.time.toFixed(1) + 's)'; }).join('  ');
-        stats.push({ icon: '🏅', title: 'Podium des plus rapides', value: podText, wide: true });
+        stats.push({ icon: '🏅', title: 'Podium des plus rapides', desc: 'Les 3 réponses les plus rapides sur image difficile', value: podText, wide: true });
     }
 
     // === RENDER ===
@@ -4873,6 +4894,7 @@ function generateFunStats(players) {
         div.className = 'fun-stat' + (s.wide ? ' fun-stat-wide' : '');
         div.innerHTML = '<div class="stat-icon">' + s.icon + '</div>' +
             '<div class="stat-title">' + s.title + '</div>' +
+            (s.desc ? '<div class="stat-desc">' + s.desc + '</div>' : '') +
             '<div class="stat-value">' + s.value + '</div>';
         container.appendChild(div);
     });
@@ -4976,6 +4998,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { await initAuth(); } catch(e) { console.error('initAuth error:', e); }
     initUI();
     try { await tryReconnect(); } catch(e) { console.error('tryReconnect error:', e); }
+    cleanupOldRooms(); // Background cleanup, no await needed
 });
 
 // Protection against accidental page close/refresh
