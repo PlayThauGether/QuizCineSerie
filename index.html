@@ -1389,6 +1389,106 @@
             .game-header { margin-bottom: 0.5rem; }
         }
 
+        /* ============ BUZZER MODE ============ */
+        .buzzer-player-view {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            background: #0a0e27;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .buzzer-player-view.hidden { display: none !important; }
+        .buzzer-player-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(26, 31, 58, 0.9);
+        }
+        .buzzer-btn {
+            width: 250px; height: 250px;
+            border-radius: 50%;
+            border: 6px solid #ff006e;
+            background: radial-gradient(circle at 40% 35%, #ff4488, #ff006e 50%, #cc0055);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 0 60px rgba(255, 0, 110, 0.5), 0 10px 40px rgba(0,0,0,0.5), inset 0 -8px 20px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .buzzer-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 0 30px rgba(255, 0, 110, 0.8), 0 5px 20px rgba(0,0,0,0.5), inset 0 4px 15px rgba(0,0,0,0.4);
+        }
+        .buzzer-btn:disabled {
+            opacity: 0.3;
+            transform: scale(0.95);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        .buzzer-icon { font-size: 4rem; line-height: 1; }
+        .buzzer-text { font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: 0.1em; }
+        .buzzer-feedback {
+            margin-top: 2rem;
+            font-size: 1.3rem;
+            font-weight: 800;
+            text-align: center;
+            min-height: 2rem;
+        }
+
+        /* Buzz overlay on host screen */
+        .buzz-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: revealFadeIn 0.2s ease;
+        }
+        .buzz-overlay.hidden { display: none !important; }
+        .buzz-overlay-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .buzz-player-emoji { font-size: 6rem; animation: bounceIn 0.4s; }
+        .buzz-player-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            color: #ffbe0b;
+            text-shadow: 0 0 30px rgba(255, 190, 11, 0.5);
+        }
+        .buzz-player-time { color: #00f5ff; font-size: 1.3rem; font-weight: 700; }
+        .buzz-host-btns { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
+
+        @media (max-width: 480px) {
+            .buzzer-btn { width: 200px; height: 200px; }
+            .buzzer-icon { font-size: 3rem; }
+            .buzzer-text { font-size: 1.5rem; }
+            .buzz-player-name { font-size: 2rem; }
+            .buzz-player-emoji { font-size: 4rem; }
+        }
+
         .toast {
             position: fixed;
             bottom: 30px;
@@ -1561,6 +1661,10 @@
                 <input type="checkbox" id="host-mode-check">
                 <span>🎛️ Mode Hôte (Affichage seulement, ne joue pas)</span>
             </label>
+            <label class="checkbox-label hidden" id="buzzer-mode-label">
+                <input type="checkbox" id="buzzer-mode-check">
+                <span>🔔 Mode Buzzer (Les joueurs buzzent, répondent à voix haute)</span>
+            </label>
             <label class="checkbox-label">
                 <input type="checkbox" id="team-mode-check">
                 <span>👥 Mode Équipe (2 Équipes, Aléatoire)</span>
@@ -1684,6 +1788,33 @@
                 <h3>✅ Bonnes réponses</h3>
                 <div id="correct-answers-list">
                     <div class="no-correct">En attente...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buzzer player view (replaces answer zone in buzzer mode) -->
+        <div class="buzzer-player-view hidden" id="buzzer-player-view">
+            <div class="buzzer-player-header">
+                <div class="timer">⏱️ <span id="buzzer-timer">20</span>s</div>
+                <div class="q-counter">Q <span id="buzzer-q-current">1</span>/<span id="buzzer-q-total">10</span></div>
+                <div class="score-display">🏆 <span id="buzzer-my-score">0</span></div>
+            </div>
+            <button class="buzzer-btn" id="buzzer-btn" onclick="playerBuzz()">
+                <span class="buzzer-icon">🔔</span>
+                <span class="buzzer-text">BUZZ !</span>
+            </button>
+            <div class="buzzer-feedback" id="buzzer-feedback"></div>
+        </div>
+
+        <!-- Host buzz overlay (shows who buzzed on host screen) -->
+        <div class="buzz-overlay hidden" id="buzz-overlay">
+            <div class="buzz-overlay-content">
+                <div class="buzz-player-emoji" id="buzz-player-emoji">🔔</div>
+                <div class="buzz-player-name" id="buzz-player-name">Joueur</div>
+                <div class="buzz-player-time" id="buzz-player-time">0.00s</div>
+                <div class="buzz-host-btns">
+                    <button class="btn large" style="background: linear-gradient(135deg, #00ff64, #00c864); color: #000;" onclick="buzzCorrect()">✅ Correct</button>
+                    <button class="btn large danger" onclick="buzzWrong()">❌ Mauvaise réponse</button>
                 </div>
             </div>
         </div>
@@ -2128,6 +2259,8 @@ const gameState = {
     numQuestions: 10,
     timerPerImage: 20,
     hostMode: false,
+    buzzerMode: false,
+    buzzerLocked: [],
     teamMode: false,
     selectedQuiz: '',
     selectedEmoji: '😀',
@@ -2422,6 +2555,7 @@ async function tryReconnect() {
         if (pIdx === -1) { clearSession(); return; }
         gameState.playerIndex = pIdx;
         gameState.hostMode = room.hostMode || false;
+        gameState.buzzerMode = room.buzzerMode || false;
         gameState.teamMode = room.teamMode || false;
         gameState.timerPerImage = room.timerPerImage || 20;
 
@@ -2603,6 +2737,8 @@ function initUI() {
         const emojiSection = document.getElementById('create-emoji-section');
         nameSection.classList.toggle('hidden', e.target.checked);
         emojiSection.classList.toggle('hidden', e.target.checked);
+        document.getElementById('buzzer-mode-label').classList.toggle('hidden', !e.target.checked);
+        if (!e.target.checked) document.getElementById('buzzer-mode-check').checked = false;
     });
 
     loadQuizList();
@@ -2787,6 +2923,7 @@ async function createRoom() {
     if (quizData.length === 0) { showToast('❌ Quiz vide !'); hideLoading(); return; }
 
     const hostMode = document.getElementById('host-mode-check').checked;
+    const buzzerMode = document.getElementById('buzzer-mode-check').checked && hostMode;
     const teamMode = document.getElementById('team-mode-check').checked;
     const numQ = Math.min(gameState.numQuestions, quizData.length);
     const shuffledQuiz = shuffle(quizData).slice(0, numQ);
@@ -2815,6 +2952,7 @@ async function createRoom() {
         code,
         host: hostName,
         hostMode,
+        buzzerMode,
         teamMode,
         quizName,
         timerPerImage: gameState.timerPerImage,
@@ -2835,6 +2973,7 @@ async function createRoom() {
         gameState.isHost = true;
         gameState.playerIndex = 0;
         gameState.hostMode = hostMode;
+        gameState.buzzerMode = buzzerMode;
         gameState.teamMode = teamMode;
         gameState.quizData = shuffledQuiz;
         gameState.selectedQuiz = selectVal;
@@ -2888,6 +3027,7 @@ async function joinRoom() {
         gameState.isHost = false;
         gameState.playerIndex = players.length - 1;
         gameState.hostMode = room.hostMode || false;
+        gameState.buzzerMode = room.buzzerMode || false;
         gameState.teamMode = room.teamMode || false;
         gameState.timerPerImage = room.timerPerImage || 20;
         if (room.quizData) gameState.quizData = room.quizData;
@@ -2973,6 +3113,7 @@ function setupRoomListeners(code) {
                     gameState.quizData = room.quizData || [];
                     gameState.timerPerImage = room.timerPerImage || 20;
                     gameState.hostMode = room.hostMode || false;
+        gameState.buzzerMode = room.buzzerMode || false;
                     gameState.currentQ = 0;
                     gameState.currentImage = 1;
                     gameState.answered = false;
@@ -3056,6 +3197,10 @@ function setupRoomListeners(code) {
         }
     });
     gameState.listeners.push(newGameRef);
+
+    // Buzzer mode listeners
+    setupBuzzerListeners(code);
+    setupBuzzerPlayerListeners(code);
 }
 
 async function redirectToNewRoom(newCode) {
@@ -3313,7 +3458,7 @@ function loadQuestion(qIndex, alreadyAnswered) {
     document.getElementById('submit-answer-btn').disabled = false;
 
     const isHostViewing = gameState.isHost && gameState.hostMode;
-    document.getElementById('answer-zone').classList.toggle('hidden', isHostViewing);
+    document.getElementById('answer-zone').classList.toggle('hidden', isHostViewing || (gameState.buzzerMode && !gameState.isHost));
 
     // Host fullscreen view
     document.getElementById('game-screen').classList.toggle('host-view', isHostViewing);
@@ -3323,6 +3468,23 @@ function loadQuestion(qIndex, alreadyAnswered) {
     const showSidebars = gameState.hostMode && gameState.isHost;
     document.getElementById('scoreboard-side').classList.toggle('hidden', !showSidebars);
     document.getElementById('correct-side').classList.toggle('hidden', !showSidebars);
+
+    // Buzzer mode: show buzzer for players, clean up buzz state
+    if (gameState.buzzerMode) {
+        gameState.buzzerLocked = [];
+        if (gameState.isHost) {
+            document.getElementById('buzz-overlay').classList.add('hidden');
+            hideBuzzerPlayerView();
+            // Clean buzz data for new question
+            db.ref('filmQuizRooms/' + gameState.room.code + '/buzz').remove();
+            db.ref('filmQuizRooms/' + gameState.room.code + '/buzzState').remove();
+        } else {
+            // Player: show buzzer, hide game screen content
+            showBuzzerPlayerView(qIndex);
+        }
+    } else {
+        hideBuzzerPlayerView();
+    }
 
     // Force image display from scratch
     updateImageDisplay();
@@ -3496,10 +3658,13 @@ function startTimer() {
     stopTickSound();
     gameState.timerValue = gameState.timerPerImage;
     document.getElementById('game-timer').textContent = gameState.timerValue;
+    if (gameState.buzzerMode) updateBuzzerTimer(gameState.timerValue);
 
     gameState.timerInterval = setInterval(() => {
         gameState.timerValue--;
         document.getElementById('game-timer').textContent = Math.max(0, gameState.timerValue);
+        // Sync buzzer player timer
+        if (gameState.buzzerMode) updateBuzzerTimer(gameState.timerValue);
 
         // Visual countdown on image — always visible for everyone
         if (gameState.timerValue <= 5 && gameState.timerValue >= 1) {
@@ -3539,6 +3704,223 @@ function autoAdvance() {
 }
 
 // ============================================================
+//  BUZZER MODE
+// ============================================================
+function showBuzzerPlayerView(qIndex) {
+    var view = document.getElementById('buzzer-player-view');
+    view.classList.remove('hidden');
+    document.getElementById('buzzer-q-current').textContent = qIndex + 1;
+    document.getElementById('buzzer-q-total').textContent = gameState.quizData.length;
+    document.getElementById('buzzer-my-score').textContent = gameState.room.players[gameState.playerIndex]?.score || 0;
+    document.getElementById('buzzer-feedback').textContent = '';
+    document.getElementById('buzzer-feedback').style.color = '#aaa';
+    var btn = document.getElementById('buzzer-btn');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+}
+
+function hideBuzzerPlayerView() {
+    document.getElementById('buzzer-player-view').classList.add('hidden');
+}
+
+function updateBuzzerTimer(val) {
+    var el = document.getElementById('buzzer-timer');
+    if (el) el.textContent = Math.max(0, val);
+}
+
+async function playerBuzz() {
+    if (gameState.answered) return;
+    var btn = document.getElementById('buzzer-btn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    var code = gameState.room.code;
+    var player = gameState.room.players[gameState.playerIndex];
+    if (!player) return;
+    var myName = safeName(player.name);
+
+    try {
+        await db.ref('filmQuizRooms/' + code + '/buzz/' + myName).set({
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            name: player.name,
+            emoji: player.emoji
+        });
+    } catch(e) {
+        btn.disabled = false;
+        console.error('Buzz error:', e);
+    }
+
+    document.getElementById('buzzer-feedback').textContent = '⏳ Envoyé !';
+    document.getElementById('buzzer-feedback').style.color = '#00f5ff';
+}
+
+function setupBuzzerListeners(code) {
+    if (!gameState.isHost || !gameState.buzzerMode) return;
+
+    // Listen for buzzes
+    var buzzRef = db.ref('filmQuizRooms/' + code + '/buzz');
+    buzzRef.on('value', function(snap) {
+        var buzzes = snap.val();
+        if (!buzzes) return;
+
+        // Find the fastest buzz
+        var sorted = Object.entries(buzzes)
+            .filter(function(e) { return e[1].timestamp; })
+            .sort(function(a, b) { return a[1].timestamp - b[1].timestamp; });
+
+        if (sorted.length === 0) return;
+        var fastest = sorted[0][1];
+
+        // Pause game
+        clearInterval(gameState.timerInterval);
+        stopTickSound();
+
+        // Show buzz overlay on host
+        document.getElementById('buzz-player-emoji').textContent = fastest.emoji || '🔔';
+        document.getElementById('buzz-player-name').textContent = fastest.name || sorted[0][0];
+        var elapsed = gameState.questionStartTime ? ((Date.now() - gameState.questionStartTime) / 1000).toFixed(2) : '?';
+        document.getElementById('buzz-player-time').textContent = 'Buzz en ' + elapsed + 's';
+        document.getElementById('buzz-overlay').classList.remove('hidden');
+
+        gameState._buzzWinner = { key: sorted[0][0], name: fastest.name, emoji: fastest.emoji };
+
+        // Notify all players
+        db.ref('filmQuizRooms/' + code + '/buzzState').set({
+            paused: true,
+            winnerName: fastest.name,
+            winnerEmoji: fastest.emoji
+        });
+    });
+    gameState.listeners.push(buzzRef);
+
+    // Player-side buzzState listener already handled below
+}
+
+function setupBuzzerPlayerListeners(code) {
+    if (gameState.isHost || !gameState.buzzerMode) return;
+
+    var stateRef = db.ref('filmQuizRooms/' + code + '/buzzState');
+    stateRef.on('value', function(snap) {
+        var state = snap.val();
+        if (!state) return;
+
+        var fb = document.getElementById('buzzer-feedback');
+        var btn = document.getElementById('buzzer-btn');
+
+        if (state.paused) {
+            btn.disabled = true;
+            var myName = gameState.room.players[gameState.playerIndex]?.name;
+            if (state.winnerName === myName) {
+                fb.textContent = '🔔 C\'est toi ! Réponds à voix haute !';
+                fb.style.color = '#ffbe0b';
+            } else {
+                fb.textContent = '⏸️ ' + (state.winnerEmoji || '') + ' ' + (state.winnerName || '') + ' a buzzé !';
+                fb.style.color = '#ff006e';
+            }
+        } else if (state.resumed) {
+            // Game resumed after wrong answer
+            var locked = state.locked || [];
+            var myName2 = safeName(gameState.room.players[gameState.playerIndex]?.name || '');
+            if (locked.indexOf(myName2) !== -1) {
+                btn.disabled = true;
+                fb.textContent = '🔒 Éliminé pour cette question';
+                fb.style.color = '#666';
+            } else {
+                btn.disabled = false;
+                fb.textContent = '❌ Mauvaise réponse ! Retente ta chance !';
+                fb.style.color = '#00f5ff';
+                setTimeout(function() {
+                    if (!btn.disabled) { fb.textContent = ''; }
+                }, 2000);
+            }
+        }
+    });
+    gameState.listeners.push(stateRef);
+}
+
+async function buzzCorrect() {
+    if (!gameState.isHost) return;
+    var code = gameState.room.code;
+    var winner = gameState._buzzWinner;
+    if (!winner) return;
+
+    // Give points based on current image
+    var points = 4 - gameState.currentImage;
+    var players = gameState.room.players || [];
+    var pIdx = players.findIndex(function(p) { return safeName(p.name) === winner.key; });
+    if (pIdx !== -1) {
+        players[pIdx].score = (players[pIdx].score || 0) + points;
+        await db.ref('filmQuizRooms/' + code + '/players/' + pIdx + '/score').set(players[pIdx].score);
+    }
+
+    // Record in answers for fun stats
+    await db.ref('filmQuizRooms/' + code + '/answers/' + winner.key).set({
+        correct: true,
+        imageLevel: gameState.currentImage,
+        points: points,
+        questionIndex: gameState.currentQ,
+        timestamp: Date.now()
+    });
+
+    // Store for lastCorrectPlayers
+    gameState.lastCorrectPlayers = [{
+        name: winner.name, emoji: winner.emoji,
+        points: points, imageLevel: gameState.currentImage,
+        timestamp: Date.now()
+    }];
+
+    // Clean up and reveal
+    document.getElementById('buzz-overlay').classList.add('hidden');
+    await db.ref('filmQuizRooms/' + code + '/buzz').remove();
+    await db.ref('filmQuizRooms/' + code + '/buzzState').remove();
+    gameState._buzzWinner = null;
+
+    // Trigger reveal
+    hostRevealAnswer();
+}
+
+async function buzzWrong() {
+    if (!gameState.isHost) return;
+    var code = gameState.room.code;
+    var winner = gameState._buzzWinner;
+    if (!winner) return;
+
+    // Lock this player out for this question
+    if (!gameState.buzzerLocked) gameState.buzzerLocked = [];
+    gameState.buzzerLocked.push(winner.key);
+
+    // Hide overlay, resume
+    document.getElementById('buzz-overlay').classList.add('hidden');
+    gameState._buzzWinner = null;
+
+    // Clear buzzes and notify players to resume
+    await db.ref('filmQuizRooms/' + code + '/buzz').remove();
+    await db.ref('filmQuizRooms/' + code + '/buzzState').set({
+        paused: false,
+        resumed: true,
+        locked: gameState.buzzerLocked
+    });
+
+    // Resume timer from where it paused (don't reset)
+    var remaining = gameState.timerValue;
+    if (remaining > 0) {
+        document.getElementById('game-timer').textContent = remaining;
+        if (gameState.buzzerMode) updateBuzzerTimer(remaining);
+        gameState.timerInterval = setInterval(function() {
+            gameState.timerValue--;
+            document.getElementById('game-timer').textContent = Math.max(0, gameState.timerValue);
+            if (gameState.buzzerMode) updateBuzzerTimer(gameState.timerValue);
+            if (gameState.timerValue <= 5 && gameState.timerValue >= 1) showImageCountdown(gameState.timerValue);
+            else hideImageCountdown();
+            if (gameState.timerValue > 0) startTickSound(gameState.timerPerImage, gameState.timerValue);
+            if (gameState.timerValue <= 0) { clearInterval(gameState.timerInterval); stopTickSound(); if (gameState.isHost) autoAdvance(); }
+        }, 1000);
+    } else {
+        if (gameState.isHost) autoAdvance();
+    }
+}
+
+// ============================================================
 //  HOST CONTROLS
 // ============================================================
 async function hostNextImage() {
@@ -3566,6 +3948,9 @@ function showAnswerReveal() {
     clearInterval(gameState.timerInterval);
     clearInterval(gameState.revealInterval);
     stopTickSound();
+    // Hide buzzer views
+    hideBuzzerPlayerView();
+    document.getElementById('buzz-overlay').classList.add('hidden');
     // Hide host hint
     const hintZone = document.getElementById('host-hint-zone');
     if (hintZone) hintZone.style.visibility = 'hidden';
@@ -3688,12 +4073,17 @@ async function hostNextQuestion() {
     }
 
     try {
-        await db.ref('filmQuizRooms/' + gameState.room.code).update({
+        var updates = {
             currentQ: nextQ,
             currentImage: 1,
             revealAnswer: false,
             answers: {}
-        });
+        };
+        if (gameState.buzzerMode) {
+            updates.buzz = null;
+            updates.buzzState = null;
+        }
+        await db.ref('filmQuizRooms/' + gameState.room.code).update(updates);
         gameState.currentQ = nextQ;
         gameState.currentImage = 1;
     } catch (e) {}
@@ -3867,6 +4257,8 @@ function showLeaderboard() {
     clearInterval(gameState.revealInterval);
     clearInterval(gameState.introInterval);
     stopTickSound();
+    hideBuzzerPlayerView();
+    document.getElementById('buzz-overlay').classList.add('hidden');
     document.getElementById('reveal-overlay').classList.remove('show');
     document.getElementById('rules-overlay').classList.remove('show');
     showScreen('leaderboard-screen');
@@ -4131,6 +4523,8 @@ async function newGameFromLeaderboard() {
     showScreen('create-screen');
     // Pre-select current settings
     document.getElementById('host-mode-check').checked = gameState.hostMode;
+    document.getElementById('buzzer-mode-check').checked = gameState.buzzerMode;
+    document.getElementById('buzzer-mode-label').classList.toggle('hidden', !gameState.hostMode);
     document.getElementById('team-mode-check').checked = gameState.teamMode;
     // Pre-select timer
     document.querySelectorAll('#timer-grid .num-btn').forEach(btn => {
@@ -4149,6 +4543,8 @@ function backToMenu() {
     clearInterval(gameState.revealInterval);
     clearInterval(gameState.introInterval);
     stopTickSound();
+    hideBuzzerPlayerView();
+    document.getElementById('buzz-overlay').classList.add('hidden');
     document.getElementById('reveal-overlay').classList.remove('show');
     document.getElementById('rules-overlay').classList.remove('show');
     gameState.listeners.forEach(l => l.off());
